@@ -302,5 +302,88 @@
 }
 
 /* ============================================================
+   FIX 17: PATIENT ADD / EDIT FORMS
+   Full-page forms (not modals). Bootstrap col-md-* already stacks
+   below 768px. The only real issue: section blocks have 16–18px
+   padding that wastes horizontal space on small phones.
+   We reduce that padding and the card's own padding on mobile.
+   ============================================================ */
+@media (max-width: 480px) {
+
+  /* Reduce card body padding so form sections breathe on phone */
+  .page-content .card>.card-body {
+    padding: 14px 12px !important;
+  }
+
+  /* Stack the submit + cancel buttons vertically on very small phones */
+  .page-content form>div[style*="display:flex"][style*="gap:10px"],
+  .page-content form .form-actions {
+    flex-direction: column !important;
+  }
+
+  .page-content form>div[style*="display:flex"][style*="gap:10px"] .btn,
+  .page-content form .form-actions .btn {
+    width: 100% !important;
+    justify-content: center;
+  }
+}
+
+/* ============================================================
+   FIX 18: NEW APPOINTMENT MODAL — col-6 name fields
+   The appointment modal uses col-6 (always 50%) for first/last
+   name fields. On phones narrower than 420px these are too tight.
+   Stack them to full width. modal-dialog-scrollable already
+   handles the keyboard-open scroll issue.
+   ============================================================ */
+@media (max-width: 480px) {
+
+  /* Already in Fix 7, but extend to catch col-6 in the appt modal */
+  #apptModal .row>.col-6,
+  #apptModal .row>[class*="col-6"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Reduce modal body padding to give the form more room */
+  #apptModal .modal-body {
+    padding: 14px 14px !important;
+  }
+
+  /* The slot info bar — make it wrap */
+  #drawerSlotBar {
+    flex-wrap: wrap;
+    padding: 8px 14px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* ============================================================
+   FIX 19: BILLING CREATE — balance display on phone
+   The balance summary block uses display:flex / justify:space-between
+   which is already perfect for mobile. The submit buttons use an
+   inline flex row — stack those on small phones.
+   ============================================================ */
+@media (max-width: 420px) {
+
+  /* "Save Bill" + "Cancel" button row on billing create */
+  #billForm>div[style*="display:flex"],
+  #billForm .btn-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  #billForm>div[style*="display:flex"] .btn,
+  #billForm .btn-row .btn {
+    width: 100% !important;
+  }
+}
+
+/* ============================================================
+   NOTE: Analytics dashboard (modules/analytics/dashboard.php)
+   and Billing Pay (modules/billing/pay.php) already have their
+   own full mobile CSS built in — no additions needed here.
+   ============================================================ */
+
+/* ============================================================
    END OF MOBILE.CSS
    ============================================================ */

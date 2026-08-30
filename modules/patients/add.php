@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$civil)       $missing[] = 'Civil Status';
     // Blood Type is optional
     if (!$address)     $missing[] = 'Address';
-    if (!$phone)       $missing[] = 'Phone';
+    if (!$phone || strlen(preg_replace('/[^0-9]/', '', $phone)) < 9) $missing[] = 'Phone';
     // Email is optional
     // Emergency contact is optional
     if (!$allergies)   $missing[] = 'Known Allergies';
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-function old($key, $default = '') {
+function old(string $key, string $default = ''): string {
     global $old;
     return htmlspecialchars($old[$key] ?? $default);
 }

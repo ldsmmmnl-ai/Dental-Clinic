@@ -828,9 +828,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                     <i class="bi bi-clock-history me-1"></i>Visit Log
                                                 </span>
                                                 <div style="display:flex;gap:6px;align-items:center;">
-                                                    <?php if (!empty($rec['bill_id']) && ($rec['bill_balance'] ?? 0) > 0.009): ?>
-                                                    <a href="../billing/pay.php?id=<?php echo $rec['bill_id']; ?>&from_patient=<?php echo $id; ?>" class="btn btn-warning btn-sm" style="font-size:0.70rem;padding:3px 9px;border-radius:6px;"><i class="bi bi-cash-coin me-1"></i>Pay &#8369;<?php echo number_format($rec['bill_balance'],2); ?></a>
-                                                    <?php endif; ?>
+                                                    
                                                     <div class="dropdown">
                                                         <button class="btn btn-xs btn-outline-secondary dropdown-toggle" style="font-size:0.70rem;padding:3px 9px;border-radius:6px;" type="button" data-bs-toggle="dropdown"><i class="bi bi-printer"></i> Print</button>
                                                         <ul class="dropdown-menu dropdown-menu-end" style="font-size:0.82rem;min-width:180px;">

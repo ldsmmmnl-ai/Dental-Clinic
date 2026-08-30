@@ -549,7 +549,7 @@ if ($view === 'otp_reset') {
                 <path d="M28 42C28 38 29.5 35 32 35C34.5 35 36 38 36 42" stroke="rgba(37,99,235,0.3)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
             </svg>
         </div>
-        <div class="login-brand-sub">Clinic Management System</div>
+        <div class="login-brand-sub"></div>
     </div>
 
     <!-- FORM AREA -->
