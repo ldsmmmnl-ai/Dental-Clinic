@@ -86,7 +86,7 @@ if (!empty($record['tooth_number']) && !empty($record['tooth_status'])) {
 
 // Number of empty filler rows on back page (show at least 20 total rows)
 $filled = count($back_rows);
-$empty_rows = max(0, 20 - $filled);
+$empty_rows = max(0, 5 - $filled); // 5 blank rows max for future hand-written visits
 
 function esc($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 ?><!DOCTYPE html>
