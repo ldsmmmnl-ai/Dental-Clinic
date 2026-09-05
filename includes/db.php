@@ -260,10 +260,96 @@ function generate_otp() {
     return str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 }
 
-// Send OTP via email using PHPMailer + Gmail SMTP
+// Send OTP via email.
+// Primary:  Resend HTTP API — works on Railway/Heroku/Vercel where Gmail SMTP is blocked.
+//           Google blocks SMTP connections originating from cloud IPs (GCP, AWS, etc.)
+//           to prevent spam. Railway runs on GCP, so Gmail SMTP always fails there.
+//           Resend uses HTTPS (not SMTP) so it is never blocked. Free tier: 100/day.
+//           → Set RESEND_API_KEY in Railway env to enable. https://resend.com
+// Fallback: PHPMailer + Gmail SMTP — used on local XAMPP/Laragon when Resend isn't set.
 function send_otp_email($email, $otp, $name = '') {
     if (empty($email)) return false;
 
+    $greeting = $name ?: 'User';
+
+    $html_body =
+        "<!DOCTYPE html><html><body style='font-family:sans-serif;max-width:480px;margin:auto;padding:32px;'>" .
+        "<h2 style='color:#0d6e6e;'>DentalCare Verification</h2>" .
+        "<p>Hello <strong>" . htmlspecialchars($greeting) . "</strong>,</p>" .
+        "<p>Your verification code is:</p>" .
+        "<div style='font-size:2rem;font-weight:700;letter-spacing:8px;color:#0d6e6e;" .
+        "background:#f1f5f9;padding:16px 24px;border-radius:8px;display:inline-block;margin:8px 0;'>" .
+        htmlspecialchars($otp) . "</div>" .
+        "<p style='color:#64748b;font-size:0.9rem;'>This code expires in <strong>5 minutes</strong>." .
+        " Do not share it with anyone.</p>" .
+        "<hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'>" .
+        "<p style='color:#94a3b8;font-size:0.8rem;'>DentalCare Clinic Management System</p>" .
+        "</body></html>";
+
+    $text_body = "Hello $greeting,\n\nYour DentalCare verification code is: $otp\n\nThis code expires in 5 minutes. Do not share it with anyone.\n\n- DentalCare System";
+
+    // ── PRIMARY: Resend HTTP API ──────────────────────────────────────────────
+    $resend_key     = getenv('RESEND_API_KEY')  ?: ($_ENV['RESEND_API_KEY']  ?? '');
+    $mail_from      = getenv('MAIL_FROM')        ?: ($_ENV['MAIL_FROM']        ?? '');
+    $mail_from_name = getenv('MAIL_FROM_NAME')   ?: ($_ENV['MAIL_FROM_NAME']   ?? (defined('APP_NAME') ? APP_NAME : 'DentalCare'));
+
+    // Only use Resend if the key looks real (not the placeholder 're_xxx…')
+    $resend_active = !empty($resend_key)
+                  && strlen($resend_key) > 10
+                  && strpos($resend_key, 'xxx') === false;
+
+    if ($resend_active && function_exists('curl_init')) {
+        // If MAIL_FROM is still the placeholder, fall back to Resend's test sender.
+        // Note: 'onboarding@resend.dev' can only deliver to the email registered on resend.com.
+        // For production (sending to patients), verify your own domain on resend.com
+        // and set MAIL_FROM=noreply@yourdomain.com in Railway env.
+        $is_placeholder_from = empty($mail_from)
+                             || $mail_from === 'no-reply@yourdomain.com'
+                             || strpos($mail_from, 'yourdomain') !== false;
+
+        $from_address = $is_placeholder_from
+            ? "DentalCare <onboarding@resend.dev>"
+            : "{$mail_from_name} <{$mail_from}>";
+
+        $payload = json_encode([
+            'from'    => $from_address,
+            'to'      => [$email],
+            'subject' => 'Your DentalCare Verification Code',
+            'html'    => $html_body,
+            'text'    => $text_body,
+        ]);
+
+        $ch = curl_init('https://api.resend.com/emails');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $resend_key,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ]);
+
+        $response  = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_err  = curl_error($ch);
+        curl_close($ch);
+
+        if ($http_code === 200 || $http_code === 201) {
+            error_log('[MAIL] OTP sent via Resend → ' . $email);
+            return true;
+        }
+
+        // Log and fall through to SMTP fallback
+        error_log('[MAIL] Resend failed (HTTP ' . $http_code . '): ' . $response
+            . ($curl_err ? ' | cURL: ' . $curl_err : ''));
+    }
+
+    // ── FALLBACK: PHPMailer + Gmail SMTP (local dev only) ────────────────────
+    // This works on XAMPP/Laragon. On Railway it will fail because Google blocks
+    // SMTP from GCP IP addresses. Use Resend above for cloud deployments.
     $autoload = __DIR__ . '/../vendor/autoload.php';
     if (!file_exists($autoload)) {
         error_log('[MAIL] vendor/autoload.php not found — run: composer require phpmailer/phpmailer');
@@ -282,22 +368,6 @@ function send_otp_email($email, $otp, $name = '') {
         return false;
     }
 
-    $greeting  = $name ?: 'User';
-    $html_body =
-        "<!DOCTYPE html><html><body style='font-family:sans-serif;max-width:480px;margin:auto;padding:32px;'>" .
-        "<h2 style='color:#0d6e6e;'>DentalCare Verification</h2>" .
-        "<p>Hello <strong>" . htmlspecialchars($greeting) . "</strong>,</p>" .
-        "<p>Your verification code is:</p>" .
-        "<div style='font-size:2rem;font-weight:700;letter-spacing:8px;color:#0d6e6e;" .
-        "background:#f1f5f9;padding:16px 24px;border-radius:8px;display:inline-block;margin:8px 0;'>" .
-        htmlspecialchars($otp) . "</div>" .
-        "<p style='color:#64748b;font-size:0.9rem;'>This code expires in <strong>5 minutes</strong>." .
-        " Do not share it with anyone.</p>" .
-        "<hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'>" .
-        "<p style='color:#94a3b8;font-size:0.8rem;'>DentalCare Clinic Management System</p>" .
-        "</body></html>";
-
-    // Capture SMTP debug output to a log file instead of stdout.
     $debug_log = __DIR__ . '/../logs/smtp_debug.log';
     $debug_buf = '';
 
@@ -310,10 +380,8 @@ function send_otp_email($email, $otp, $name = '') {
         $mail->Password   = $smtp_pass;
         $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
-        $mail->Timeout    = 15; // seconds
+        $mail->Timeout    = 15;
 
-        // LOCAL DEV ONLY — disables SSL cert verify (XAMPP/Laragon has no CA bundle)
-        // ⚠️ Remove this block before deploying to real hosting
         $mail->SMTPOptions = [
             'ssl' => [
                 'verify_peer'       => false,
@@ -322,28 +390,25 @@ function send_otp_email($email, $otp, $name = '') {
             ]
         ];
 
-        // Capture debug output silently — only written on failure
-        $mail->SMTPDebug  = 3; // SMTP + connection
+        $mail->SMTPDebug  = 3;
         $mail->Debugoutput = function(string $str, int $level) use (&$debug_buf) {
             $debug_buf .= "[SMTP lvl$level] $str\n";
         };
 
         $mail->setFrom($smtp_user, APP_NAME);
         $mail->addAddress($email, $greeting);
-
         $mail->isHTML(true);
         $mail->CharSet = 'UTF-8';
         $mail->Subject = 'Your DentalCare Verification Code';
         $mail->Body    = $html_body;
-        $mail->AltBody = "Hello $greeting,\n\nYour DentalCare verification code is: $otp\n\nThis code expires in 5 minutes. Do not share it with anyone.\n\n- DentalCare System";
+        $mail->AltBody = $text_body;
 
         $mail->send();
-        error_log('[MAIL] OTP sent OK → ' . $email . ' via ' . $smtp_user);
+        error_log('[MAIL] OTP sent via SMTP → ' . $email . ' via ' . $smtp_user);
         return true;
     } catch (\PHPMailer\PHPMailer\Exception $e) {
         $msg = '[MAIL] PHPMailer FAILED sending to ' . $email . ': ' . $e->getMessage();
         error_log($msg);
-        // Write full SMTP session to logs/smtp_debug.log so you can see exactly what broke
         if (!empty($debug_buf) && is_dir(dirname($debug_log))) {
             file_put_contents($debug_log, date('[Y-m-d H:i:s] ') . $msg . "\n" . $debug_buf . "\n", FILE_APPEND);
         }
