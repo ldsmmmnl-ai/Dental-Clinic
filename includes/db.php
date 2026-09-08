@@ -261,12 +261,11 @@ function generate_otp() {
 }
 
 // Send OTP via email.
-// Primary:  Resend HTTP API — works on Railway/Heroku/Vercel where Gmail SMTP is blocked.
-//           Google blocks SMTP connections originating from cloud IPs (GCP, AWS, etc.)
-//           to prevent spam. Railway runs on GCP, so Gmail SMTP always fails there.
-//           Resend uses HTTPS (not SMTP) so it is never blocked. Free tier: 100/day.
-//           → Set RESEND_API_KEY in Railway env to enable. https://resend.com
-// Fallback: PHPMailer + Gmail SMTP — used on local XAMPP/Laragon when Resend isn't set.
+// Primary:  Mailjet HTTP API — works on Railway where Gmail SMTP is blocked.
+//           Mailjet uses HTTPS (port 443), never blocked by Railway/GCP.
+//           Free tier: 6,000 emails/month. Accepts Gmail sender after verification.
+//           → Set MAILJET_API_KEY + MAILJET_SECRET_KEY in Railway env. https://mailjet.com
+// Fallback: PHPMailer + Gmail SMTP — used on local XAMPP/Laragon when Mailjet isn't set.
 function send_otp_email($email, $otp, $name = '') {
     if (empty($email)) return false;
 
@@ -289,7 +288,8 @@ function send_otp_email($email, $otp, $name = '') {
     $text_body = "Hello $greeting,\n\nYour DentalCare verification code is: $otp\n\nThis code expires in 5 minutes. Do not share it with anyone.\n\n- DentalCare System";
 
     // ── PRIMARY: Resend HTTP API ──────────────────────────────────────────────
-    $resend_key     = getenv('RESEND_API_KEY')  ?: ($_ENV['RESEND_API_KEY']  ?? '');
+    $mj_api_key     = getenv('MAILJET_API_KEY')    ?: ($_ENV['MAILJET_API_KEY']    ?? '');
+    $mj_secret_key  = getenv('MAILJET_SECRET_KEY') ?: ($_ENV['MAILJET_SECRET_KEY'] ?? '');
     $mail_from      = getenv('MAIL_FROM')        ?: ($_ENV['MAIL_FROM']        ?? '');
     $mail_from_name = getenv('MAIL_FROM_NAME')   ?: ($_ENV['MAIL_FROM_NAME']   ?? (defined('APP_NAME') ? APP_NAME : 'DentalCare'));
 
@@ -299,35 +299,25 @@ function send_otp_email($email, $otp, $name = '') {
                   && strpos($resend_key, 'xxx') === false;
 
     if ($resend_active && function_exists('curl_init')) {
-        // If MAIL_FROM is still the placeholder, fall back to Resend's test sender.
-        // Note: 'onboarding@resend.dev' can only deliver to the email registered on resend.com.
-        // For production (sending to patients), verify your own domain on resend.com
-        // and set MAIL_FROM=noreply@yourdomain.com in Railway env.
-        $is_placeholder_from = empty($mail_from)
-                             || $mail_from === 'no-reply@yourdomain.com'
-                             || strpos($mail_from, 'yourdomain') !== false;
-
-        $from_address = $is_placeholder_from
-            ? "DentalCare <onboarding@resend.dev>"
-            : "{$mail_from_name} <{$mail_from}>";
-
+        // Mailjet Send API v3.1
         $payload = json_encode([
-            'from'    => $from_address,
-            'to'      => [$email],
-            'subject' => 'Your DentalCare Verification Code',
-            'html'    => $html_body,
-            'text'    => $text_body,
+            'Messages' => [[
+                'From'     => ['Email' => $mail_from, 'Name' => $mail_from_name],
+                'To'       => [['Email' => $email,     'Name' => $greeting]],
+                'Subject'  => 'Your DentalCare Verification Code',
+                'HTMLPart' => $html_body,
+                'TextPart' => $text_body,
+            ]],
         ]);
 
-        $ch = curl_init('https://api.resend.com/emails');
+        $ch = curl_init('https://api.mailjet.com/v3.1/send');
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => [
-                'Authorization: Bearer ' . $resend_key,
-                'Content-Type: application/json',
-            ],
+            CURLOPT_HTTPAUTH       => CURLAUTH_BASIC,
+            CURLOPT_USERPWD        => $mj_api_key . ':' . $mj_secret_key,
+            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
             CURLOPT_TIMEOUT        => 15,
             CURLOPT_CONNECTTIMEOUT => 10,
         ]);
@@ -337,13 +327,13 @@ function send_otp_email($email, $otp, $name = '') {
         $curl_err  = curl_error($ch);
         curl_close($ch);
 
-        if ($http_code === 200 || $http_code === 201) {
-            error_log('[MAIL] OTP sent via Resend → ' . $email);
+        if ($http_code === 200) {
+            error_log('[MAIL] OTP sent via Mailjet → ' . $email);
             return true;
         }
 
         // Log and fall through to SMTP fallback
-        error_log('[MAIL] Resend failed (HTTP ' . $http_code . '): ' . $response
+        error_log('[MAIL] Mailjet failed (HTTP ' . $http_code . '): ' . $response
             . ($curl_err ? ' | cURL: ' . $curl_err : ''));
     }
 
