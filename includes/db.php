@@ -264,7 +264,7 @@ function generate_otp() {
 // Primary:  Mailjet HTTP API — works on Railway where Gmail SMTP is blocked.
 //           Mailjet uses HTTPS (port 443), never blocked by Railway/GCP.
 //           Free tier: 6,000 emails/month. Accepts Gmail sender after verification.
-//           → Set MAILJET_API_KEY + MAILJET_SECRET_KEY in Railway env. https://mailjet.com
+//           → Set MAILJET_API_KEY + MAILJET_SECRET_KEY + MAIL_FROM in Railway env.
 // Fallback: PHPMailer + Gmail SMTP — used on local XAMPP/Laragon when Mailjet isn't set.
 function send_otp_email($email, $otp, $name = '') {
     if (empty($email)) return false;
@@ -287,23 +287,22 @@ function send_otp_email($email, $otp, $name = '') {
 
     $text_body = "Hello $greeting,\n\nYour DentalCare verification code is: $otp\n\nThis code expires in 5 minutes. Do not share it with anyone.\n\n- DentalCare System";
 
-    // ── PRIMARY: Resend HTTP API ──────────────────────────────────────────────
+    // ── PRIMARY: Mailjet HTTP API ─────────────────────────────────────────────
     $mj_api_key     = getenv('MAILJET_API_KEY')    ?: ($_ENV['MAILJET_API_KEY']    ?? '');
     $mj_secret_key  = getenv('MAILJET_SECRET_KEY') ?: ($_ENV['MAILJET_SECRET_KEY'] ?? '');
-    $mail_from      = getenv('MAIL_FROM')        ?: ($_ENV['MAIL_FROM']        ?? '');
-    $mail_from_name = getenv('MAIL_FROM_NAME')   ?: ($_ENV['MAIL_FROM_NAME']   ?? (defined('APP_NAME') ? APP_NAME : 'DentalCare'));
+    $mail_from      = getenv('MAIL_FROM')           ?: ($_ENV['MAIL_FROM']           ?? '');
+    $mail_from_name = getenv('MAIL_FROM_NAME')      ?: ($_ENV['MAIL_FROM_NAME']      ?? (defined('APP_NAME') ? APP_NAME : 'DentalCare'));
 
-    // Only use Resend if the key looks real (not the placeholder 're_xxx…')
-    $resend_active = !empty($resend_key)
-                  && strlen($resend_key) > 10
-                  && strpos($resend_key, 'xxx') === false;
+    $mailjet_active = !empty($mj_api_key)
+                   && strlen($mj_api_key) > 10
+                   && !empty($mj_secret_key)
+                   && !empty($mail_from);
 
-    if ($resend_active && function_exists('curl_init')) {
-        // Mailjet Send API v3.1
+    if ($mailjet_active && function_exists('curl_init')) {
         $payload = json_encode([
             'Messages' => [[
                 'From'     => ['Email' => $mail_from, 'Name' => $mail_from_name],
-                'To'       => [['Email' => $email,     'Name' => $greeting]],
+                'To'       => [['Email' => $email,    'Name' => $greeting]],
                 'Subject'  => 'Your DentalCare Verification Code',
                 'HTMLPart' => $html_body,
                 'TextPart' => $text_body,
