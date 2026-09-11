@@ -572,17 +572,19 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                     </div>
                 </div>
 
-                <!-- Medical Background -->
+                <!-- Dental Background -->
                 <div class="card mb-3">
-                    <div class="card-header"><i class="bi bi-heart-pulse-fill me-2" style="color:var(--danger);"></i>Medical Background</div>
+                    <div class="card-header"><i class="bi bi-heart-pulse-fill me-2" style="color:var(--danger);"></i>Dental Background</div>
                     <div class="card-body">
-                        <p class="mb-1" style="font-size:0.77rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-700);">Allergies</p>
-                        <p class="mb-3" style="font-size:0.875rem;"><?php echo nl2br(e($patient['allergies'] ?? 'None reported')); ?></p>
                         <p class="mb-1" style="font-size:0.77rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-700);">Medical Notes</p>
-                        <p class="<?php echo !empty($patient['illness_history']) ? 'mb-3' : 'mb-0'; ?>" style="font-size:0.875rem;"><?php echo nl2br(e($patient['medical_notes'] ?? 'None')); ?></p>
+                        <p class="<?php echo !empty($patient['illness_history']) || !empty($patient['treatment_plan']) ? 'mb-3' : 'mb-0'; ?>" style="font-size:0.875rem;"><?php echo nl2br(e($patient['medical_notes'] ?? 'None')); ?></p>
                         <?php if (!empty($patient['illness_history'])): ?>
                         <p class="mb-1" style="font-size:0.77rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray-700);">History of Illness</p>
-                        <p class="mb-0" style="font-size:0.875rem;"><?php echo nl2br(e($patient['illness_history'])); ?></p>
+                        <p class="<?php echo !empty($patient['treatment_plan']) ? 'mb-3' : 'mb-0'; ?>" style="font-size:0.875rem;"><?php echo nl2br(e($patient['illness_history'])); ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($patient['treatment_plan'])): ?>
+                        <p class="mb-1" style="font-size:0.77rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--primary);">Treatment Plan</p>
+                        <p class="mb-0" style="font-size:0.875rem;"><?php echo nl2br(e($patient['treatment_plan'])); ?></p>
                         <?php endif; ?>
                     </div>
                 </div>
