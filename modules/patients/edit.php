@@ -38,9 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ec_name     = trim($_POST['emergency_contact_name'] ?? '');
     $ec_phone    = trim($_POST['emergency_contact_phone'] ?? '');
     $blood       = trim($_POST['blood_type'] ?? '');
-    $allergies   = trim($_POST['allergies'] ?? '');
-    $med_notes   = trim($_POST['medical_notes'] ?? '');
-    $ill_history = trim($_POST['illness_history'] ?? '');
+    $med_notes      = trim($_POST['medical_notes'] ?? '');
+    $ill_history    = trim($_POST['illness_history'] ?? '');
+    $treatment_plan = trim($_POST['treatment_plan'] ?? '');
 
     // SECURITY #4 — Server-side field length caps
     $length_errors = [];
@@ -50,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen($address)     > 500) $length_errors[] = 'Address (max 500 chars)';
     if (strlen($email)       > 100) $length_errors[] = 'Email (max 100 chars)';
     if (strlen($ec_name)     > 100) $length_errors[] = 'Emergency Contact Name (max 100 chars)';
-    if (strlen($allergies)   > 2000)$length_errors[] = 'Allergies (max 2000 chars)';
-    if (strlen($med_notes)   > 2000)$length_errors[] = 'Medical Notes (max 2000 chars)';
+    if (strlen($med_notes)      > 2000)$length_errors[] = 'Medical Notes (max 2000 chars)';
+    if (strlen($treatment_plan) > 2000)$length_errors[] = 'Treatment Plan (max 2000 chars)';
 
     if (!empty($length_errors)) {
         $error = 'Field(s) exceed maximum length: ' . implode(', ', $length_errors) . '.';
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             UPDATE patients SET
                 first_name=?, last_name=?, middle_name=?, date_of_birth=?, gender=?, civil_status=?,
                 address=?, occupation=?, phone=?, email=?, emergency_contact_name=?, emergency_contact_phone=?,
-                blood_type=?, allergies=?, medical_notes=?, illness_history=?" .
+                blood_type=?, medical_notes=?, illness_history=?, treatment_plan=?" .
                 ($clear_incomplete ? ", is_incomplete=FALSE" : "") . "
             WHERE id=?
         ");
@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute([
             $first_name, $last_name, $middle_name, $dob, $gender, $civil,
             $address, $occupation, $phone, $email, $ec_name, $ec_phone,
-            $blood, $allergies, $med_notes, $ill_history, $id
+            $blood, $med_notes, $ill_history, $treatment_plan, $id
         ])) {
             log_action($conn, $current_user_id, $current_user_name, 'Edited Patient', 'patients', $id, "Updated: $first_name $last_name");
             $success = $clear_incomplete
@@ -230,19 +230,19 @@ if (isset($_GET['delete']) && is_admin()) {
                         </div>
                     </div>
 
-                    <h6 class="mb-3">Medical Background</h6>
+                    <h6 class="mb-3">Dental Background</h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">Known Allergies</label>
-                            <textarea name="allergies" class="form-control" rows="2"><?php echo htmlspecialchars($patient['allergies'] ?? ''); ?></textarea>
+                            <label class="form-label">Medical Notes</label>
+                            <textarea name="medical_notes" class="form-control" rows="2" placeholder="Existing conditions, known allergies, current medications, etc."><?php echo htmlspecialchars($patient['medical_notes'] ?? ''); ?></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Medical Notes</label>
-                            <textarea name="medical_notes" class="form-control" rows="2"><?php echo htmlspecialchars($patient['medical_notes'] ?? ''); ?></textarea>
-                        </div>
-                        <div class="col-md-12">
                             <label class="form-label">History of Illness</label>
                             <textarea name="illness_history" class="form-control" rows="2" placeholder="Past illnesses, hospitalizations, or significant medical events (optional)"><?php echo htmlspecialchars($patient['illness_history'] ?? ''); ?></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Treatment Plan</label>
+                            <textarea name="treatment_plan" class="form-control" rows="3" placeholder="Treatment plan and medications prescribed"><?php echo htmlspecialchars($patient['treatment_plan'] ?? ''); ?></textarea>
                         </div>
                     </div>
 
