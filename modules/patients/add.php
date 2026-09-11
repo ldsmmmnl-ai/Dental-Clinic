@@ -29,9 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ec_name     = trim($_POST['emergency_contact_name'] ?? '');
     $ec_phone    = trim($_POST['emergency_contact_phone'] ?? '');
     $occupation   = trim($_POST['occupation'] ?? '');
-    $allergies    = trim($_POST['allergies'] ?? '');
-    $med_notes    = trim($_POST['medical_notes'] ?? '');
-    $ill_history  = trim($_POST['illness_history'] ?? '');
+    $med_notes       = trim($_POST['medical_notes'] ?? '');
+    $ill_history     = trim($_POST['illness_history'] ?? '');
+    $treatment_plan  = trim($_POST['treatment_plan'] ?? '');
 
     $missing = [];
     if (!$first_name)  $missing[] = 'First Name';
@@ -45,8 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$phone || strlen(preg_replace('/[^0-9]/', '', $phone)) < 9) $missing[] = 'Phone';
     // Email is optional
     // Emergency contact is optional
-    if (!$allergies)   $missing[] = 'Known Allergies';
-    // Medical Notes is optional
+    // Medical Notes is optional (allergies info goes here)
 
     // SECURITY #4 — Server-side field length caps (DB columns + sanity limits)
     $length_errors = [];
@@ -56,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen($address)     > 500) $length_errors[] = 'Address (max 500 chars)';
     if (strlen($email)       > 100) $length_errors[] = 'Email (max 100 chars)';
     if (strlen($ec_name)     > 100) $length_errors[] = 'Emergency Contact Name (max 100 chars)';
-    if (strlen($allergies)   > 2000)$length_errors[] = 'Allergies (max 2000 chars)';
-    if (strlen($med_notes)   > 2000)$length_errors[] = 'Medical Notes (max 2000 chars)';
+    if (strlen($med_notes)      > 2000)$length_errors[] = 'Medical Notes (max 2000 chars)';
+    if (strlen($treatment_plan) > 2000)$length_errors[] = 'Treatment Plan (max 2000 chars)';
 
     if (!empty($missing)) {
         $error = 'Please fill in all required fields: ' . implode(', ', $missing) . '.';
@@ -75,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO patients
             (patient_code, first_name, last_name, middle_name, date_of_birth, gender, civil_status,
              address, occupation, phone, email, emergency_contact_name, emergency_contact_phone,
-             blood_type, allergies, medical_notes, illness_history, registered_by)
+             blood_type, medical_notes, illness_history, treatment_plan, registered_by)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
         if (!$stmt) {
@@ -84,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute([
                 $patient_code, $first_name, $last_name, $middle_name, $dob, $gender, $civil,
                 $address, $occupation, $phone, $email, $ec_name, $ec_phone,
-                $blood, $allergies, $med_notes, $ill_history, $current_user_id
+                $blood, $med_notes, $ill_history, $treatment_plan, $current_user_id
             ])) {
                 $new_id = (int)$conn->lastInsertId();
                 log_action($conn, $current_user_id, $current_user_name, 'Added Patient', 'patients', $new_id, "Patient: $first_name $last_name ($patient_code)");
@@ -251,20 +250,20 @@ function old(string $key, string $default = ''): string {
                     <!-- Section: Medical -->
                     <div style="background:var(--gray-50);border-radius:8px;padding:16px 18px;margin-bottom:22px;">
                         <p style="font-family:'Outfit',sans-serif;font-weight:600;font-size:0.85rem;color:var(--blue-600);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
-                            <i class="bi bi-heart-pulse"></i> Medical Background
+                            <i class="bi bi-heart-pulse"></i> Dental Background
                         </p>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Known Allergies <span style="color:var(--danger)">*</span></label>
-                                <textarea name="allergies" class="form-control" rows="3" required placeholder="List any known drug or material allergies. Type 'None' if none."><?php echo old('allergies'); ?></textarea>
+                                <label class="form-label">Medical Notes <span style="font-size:0.75rem;color:var(--gray-400);">(optional)</span></label>
+                                <textarea name="medical_notes" class="form-control" rows="3" placeholder="Existing conditions, known allergies, current medications, etc."><?php echo old('medical_notes'); ?></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Medical Notes <span style="font-size:0.75rem;color:var(--gray-400);">(optional)</span></label>
-                                <textarea name="medical_notes" class="form-control" rows="3" placeholder="Existing conditions, medications, etc."><?php echo old('medical_notes'); ?></textarea>
+                                <label class="form-label">History of Illness</label>
+                                <textarea name="illness_history" class="form-control" rows="3" placeholder="Past illnesses, hospitalizations, or significant medical events (optional)"><?php echo old('illness_history'); ?></textarea>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label">History of Illness</label>
-                                <textarea name="illness_history" class="form-control" rows="2" placeholder="Past illnesses, hospitalizations, or significant medical events (optional)"><?php echo old('illness_history'); ?></textarea>
+                                <label class="form-label">Treatment Plan</label>
+                                <textarea name="treatment_plan" class="form-control" rows="3" placeholder="Treatment plan and medications prescribed (optional)"><?php echo old('treatment_plan'); ?></textarea>
                             </div>
                         </div>
                     </div>
