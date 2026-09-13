@@ -4,13 +4,7 @@ require_once 'includes/db.php';
 require_once 'includes/auth.php';
 
 
-// Safe query helper — prevents fatal errors if a query returns false on DB hiccup
-function db_val($conn, string $sql, string $field = 'c', $default = 0) {
-    $r = $conn->query($sql);
-    if (!$r) { return $default; }
-    $row = $r->fetch(PDO::FETCH_ASSOC);
-    return $row[$field] ?? $default;
-}
+// db_val() is now defined in includes/db.php — no local copy needed here.
 
 $page_title = 'Dashboard';
 
@@ -20,19 +14,19 @@ $last_month_start = date('Y-m-01', strtotime('-1 month'));
 $last_month_end   = date('Y-m-t',  strtotime('-1 month'));
 
 $total_patients       = (int)db_val($conn, "SELECT COUNT(*) as c FROM patients WHERE is_active = TRUE");
-$todays_appointments  = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE appointment_date = '$today'");
+$todays_appointments  = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE appointment_date = ?", [$today]);
 $pending_appointments = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE status = 'pending'");
-$completed_month      = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE status = 'completed' AND appointment_date >= '$month_start'");
-$revenue_month        = (float)db_val($conn, "SELECT COALESCE(SUM(amount_paid),0) as c FROM bills WHERE DATE(created_at) >= '$month_start'", 'c', 0.0);
+$completed_month      = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE status = 'completed' AND appointment_date >= ?", [$month_start]);
+$revenue_month        = (float)db_val($conn, "SELECT COALESCE(SUM(amount_paid),0) as c FROM bills WHERE DATE(created_at) >= ?", [$month_start], 'c', 0.0);
 
-$patients_last_month  = (int)db_val($conn, "SELECT COUNT(*) as c FROM patients WHERE DATE(created_at) BETWEEN '$last_month_start' AND '$last_month_end'");
-$patients_this_month  = (int)db_val($conn, "SELECT COUNT(*) as c FROM patients WHERE DATE(created_at) >= '$month_start'");
-$completed_last_month = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE status='completed' AND appointment_date BETWEEN '$last_month_start' AND '$last_month_end'");
-$revenue_last_month   = (float)db_val($conn, "SELECT COALESCE(SUM(amount_paid),0) as c FROM bills WHERE DATE(created_at) BETWEEN '$last_month_start' AND '$last_month_end'", 'c', 0.0);
+$patients_last_month  = (int)db_val($conn, "SELECT COUNT(*) as c FROM patients WHERE DATE(created_at) BETWEEN ? AND ?", [$last_month_start, $last_month_end]);
+$patients_this_month  = (int)db_val($conn, "SELECT COUNT(*) as c FROM patients WHERE DATE(created_at) >= ?", [$month_start]);
+$completed_last_month = (int)db_val($conn, "SELECT COUNT(*) as c FROM appointments WHERE status='completed' AND appointment_date BETWEEN ? AND ?", [$last_month_start, $last_month_end]);
+$revenue_last_month   = (float)db_val($conn, "SELECT COALESCE(SUM(amount_paid),0) as c FROM bills WHERE DATE(created_at) BETWEEN ? AND ?", [$last_month_start, $last_month_end], 'c', 0.0);
 
 $unpaid_count = (int)db_val($conn, "SELECT COUNT(*) as c FROM bills WHERE status IN ('unpaid','partial')");
 
-$today_schedule = $conn->query("
+$ts_stmt = $conn->prepare("
     SELECT a.appointment_time, a.status, a.appointment_code, a.patient_id,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            s.service_name, d.full_name as doctor_name
@@ -40,11 +34,13 @@ $today_schedule = $conn->query("
     LEFT JOIN patients p ON a.patient_id = p.id
     LEFT JOIN services s ON a.service_id = s.id
     LEFT JOIN doctors  d ON a.doctor_id  = d.id
-    WHERE a.appointment_date = '$today'
+    WHERE a.appointment_date = ?
     AND a.status IN ('pending','confirmed','completed')
     ORDER BY a.appointment_time ASC
     LIMIT 8
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$ts_stmt->execute([$today]);
+$today_schedule = $ts_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $notifications = [];
 $notif_stmt = $conn->prepare("SELECT * FROM notifications WHERE (user_id = ? OR user_id IS NULL) AND is_read = FALSE ORDER BY created_at DESC LIMIT 5");

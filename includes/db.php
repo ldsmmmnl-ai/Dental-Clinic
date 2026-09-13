@@ -537,3 +537,25 @@ function sc_set(string $key, mixed $data, int $ttl = 300): mixed {
     $_SESSION['_sc'][$key] = ['d' => $data, 'exp' => time() + $ttl];
     return $data;
 }
+
+// ============================================================
+// QUERY HELPER — db_val()
+// Fetch one scalar value using a safe prepared statement.
+// Replaces the old dashboard-only version that used string
+// interpolation. Now available to every file that loads db.php.
+//
+// Usage:
+//   db_val($conn, "SELECT COUNT(*) AS c FROM patients WHERE is_active = ?", [1])
+//   db_val($conn, "SELECT COALESCE(SUM(amount_paid),0) AS c FROM bills WHERE status = ?", ['unpaid'], 'c', 0.0)
+// ============================================================
+function db_val(PDO $conn, string $sql, array $params = [], string $field = 'c', $default = 0): mixed {
+    try {
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row[$field] ?? $default;
+    } catch (PDOException $e) {
+        error_log('[db_val] ' . $e->getMessage());
+        return $default;
+    }
+}

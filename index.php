@@ -25,6 +25,7 @@ if (isset($_SESSION['user_id'])) {
  
 require_once 'includes/db.php';
 
+if (!function_exists('validate_password')) {
 function validate_password(string $pw): ?string {
     if (strlen($pw) < 8 || strlen($pw) > 18)
         return 'Password must be between 8 and 18 characters.';
@@ -37,6 +38,7 @@ function validate_password(string $pw): ?string {
     if (!preg_match('/[^A-Za-z0-9]/', $pw))
         return 'Password must contain at least one special character (e.g. @, #, $, !).';
     return null;
+}
 }
 
 define('MAX_LOGIN_ATTEMPTS', 5);
