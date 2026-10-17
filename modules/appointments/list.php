@@ -198,11 +198,12 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             <?php endforeach; ?>
         </div>
 
-        <!-- ── Type Filter Pills ────────────────────────────────── -->
-        <button type="button" class="phone-filter-btn" onclick="document.getElementById('apptFilters').classList.toggle('open')">
+<button type="button" class="phone-filter-btn" onclick="document.getElementById('apptFilters').classList.toggle('open')">
     <i class="bi bi-funnel"></i> Search &amp; Filters
 </button>
 <div class="appt-filters<?php echo ($search || $date_filter || $doctor_filter || $type_filter) ? ' open' : ''; ?>" id="apptFilters">
+
+        <!-- ── Type Filter Pills ────────────────────────────────── -->
         <div class="mobile-type-bar" style="display:flex;gap:6px;margin-bottom:16px;align-items:center;overflow-x:auto;padding-bottom:2px;">
             <span style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Type:</span>
             <?php
@@ -279,6 +280,8 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                 </div>
             </div>
         </form>
+
+</div><!-- /#apptFilters -->
 
         <!-- ── Table ────────────────────────────────────────────── -->
         <div class="mobile-card-table-wrap" style="background:var(--white);border-radius:14px;border:var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
