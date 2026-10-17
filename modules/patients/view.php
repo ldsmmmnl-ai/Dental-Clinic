@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record
     $appt_link_id = intval($_POST['appointment_id'] ?? 0) ?: null;
     $svc_id       = intval($_POST['service_id'] ?? 0) ?: null;
     $tooth_num    = trim($_POST['tooth_number'] ?? '');
+    $tooth_marks  = sanitize_tooth_marks($_POST['tooth_marks'] ?? '');
     $tooth_st     = trim($_POST['tooth_status'] ?? 'normal');
     $valid_sts    = ['normal','caries','filling','extraction','missing','crown','rootcanal','bridge','implant','denture'];
     if (!in_array($tooth_st, $valid_sts)) $tooth_st = 'normal';
@@ -38,14 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record
         try {
             $ins = $conn->prepare(
                 "INSERT INTO dental_records
-                 (patient_id, appointment_id, service_id, tooth_number, tooth_status,
+                 (patient_id, appointment_id, service_id, tooth_number, tooth_status, tooth_marks,
                   chief_complaint, diagnosis, treatment_done, materials_used,
                   treatment_plan, medications_prescribed, next_visit_notes,
                   visit_date, fee_charged, recorded_by)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
             );
             $ins->execute([
-                $pid, $appt_link_id, $svc_id, $tooth_num, $tooth_st,
+                $pid, $appt_link_id, $svc_id, $tooth_num, $tooth_st, $tooth_marks,
                 $chief, $diagnosis, $treatment, $materials,
                 $plan, $meds, $next, $visit_date, $fee_charged, $current_user_id
             ]);
@@ -687,7 +688,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                         $tc_hide_legend = true;
                                         include dirname(__FILE__) . '/../../includes/tooth_chart_grid.php';
                                         // Reset chart vars so later display-mode includes aren't affected
-                                        $tc_mode = 'input'; $chart_teeth = []; $chart_uid = ''; $tc_hide_legend = false;
+                                        $tc_mode = 'input'; $chart_teeth = []; $chart_marks = []; $chart_uid = ''; $tc_hide_legend = false;
                                     ?>
                                 </div>
                                 <input type="text" name="tooth_number" id="inlineToothNumberInput"
@@ -788,8 +789,8 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                     <div class="rec-body <?php echo $i === 0 ? 'show' : ''; ?>" id="rec<?php echo $rec['id']; ?>">
 
                                         <?php
-                                        // Show tooth chart only if this record has teeth tagged
-                                        if (!empty($rec['tooth_number'])) {
+                                        // Show tooth chart only if this record has teeth tagged or marks written
+                                        if (!empty($rec['tooth_number']) || !empty($rec['tooth_marks'])) {
                                             $rec_chart_teeth = [];
                                             foreach (preg_split('/[\s,;]+/', $rec['tooth_number']) as $_t) {
                                                 $_t = trim($_t);
@@ -798,12 +799,13 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                             $chart_uid   = 'rec' . $rec['id'];
                                             $tc_mode     = 'display';
                                             $chart_teeth = $rec_chart_teeth;
+                                            $chart_marks = parse_tooth_marks($rec['tooth_marks'] ?? '');
                                         ?>
                                         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
                                         <?php include dirname(__FILE__) . '/../../includes/tooth_chart_grid.php'; ?>
                                         </div>
                                         <?php
-                                            $tc_mode = 'input'; $chart_teeth = []; $chart_uid = '';
+                                            $tc_mode = 'input'; $chart_teeth = []; $chart_marks = []; $chart_uid = '';
                                         } // end if tooth_number
                                         ?>
 
