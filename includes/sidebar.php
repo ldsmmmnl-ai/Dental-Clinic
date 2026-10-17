@@ -186,3 +186,4 @@ if (!function_exists('nav_active')) {
     </div>
 
 </nav>
+<?php include __DIR__ . '/bottom-nav.php'; ?>
