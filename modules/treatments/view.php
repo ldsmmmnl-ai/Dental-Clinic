@@ -248,6 +248,7 @@ $tsc = $status_map[$ts] ?? $status_map['normal'];
                                 if ($_t !== '') $chart_teeth[$_t] = $r['tooth_status'];
                             }
                         }
+                        $chart_marks = parse_tooth_marks($r['tooth_marks'] ?? '');
                         $chart_uid = 'view_' . $r['id'];
                         $tc_mode   = 'display';
                         ?>
