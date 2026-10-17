@@ -1,0 +1,389 @@
+/* ============================================================
+   PHONE.CSS — makes the site feel like a phone app on small screens.
+   Only turns on at phone width. Laptop view is not changed.
+   ============================================================ */
+
+/* Bottom bar is hidden on laptop */
+#phone-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* ── Bottom bar (Home / Appointments / Calendar / Patients / More) ── */
+  #phone-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 990;
+    /* under the side menu (1000) */
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.07);
+  }
+
+  #phone-nav a,
+  #phone-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 52px;
+    background: none;
+    border: 0;
+    border-radius: 12px;
+    color: var(--gray-500);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-decoration: none;
+    font-family: inherit;
+  }
+
+  #phone-nav i {
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  #phone-nav .active {
+    color: var(--primary);
+    background: var(--primary-bg);
+  }
+
+  [data-theme="dark"] #phone-nav {
+    background: #1E293B;
+    border-color: #334155;
+  }
+
+  /* leave room so the bar never covers the last item */
+  .main-content {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* ── Top bar: cleaner ── */
+  #breadcrumb {
+    display: none !important;
+  }
+
+  /* fixes the cut-off "Patien Recor" */
+  #sidebar-toggle {
+    display: none !important;
+  }
+
+  /* "More" button does this job now */
+  .topbar-title-block .page-title {
+    font-size: 1.05rem !important;
+    font-weight: 700;
+    max-width: none !important;
+  }
+
+  /* ── Dashboard quick buttons: two neat tiles ── */
+  .welcome-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .btn-welcome {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+    padding: 12px 8px !important;
+    font-size: 0.8rem !important;
+    line-height: 1.2;
+  }
+
+  .btn-welcome i {
+    font-size: 1.2rem;
+  }
+
+  /* ── Small cards: keep text above the round decoration ── */
+  .stat-card>* {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Filters hide behind one button ── */
+  .phone-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--white);
+    color: var(--gray-700);
+    font-weight: 700;
+    font-size: 0.88rem;
+  }
+
+  .appt-filters {
+    display: none;
+  }
+
+  .appt-filters.open {
+    display: block;
+  }
+}
+
+/* Button is only for phones */
+.phone-filter-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .phone-filter-btn {
+    display: flex;
+  }
+}
+
+/* ── Short appointment cards (phones only) ── */
+@media (max-width: 600px) {
+  #appointmentsTable tr {
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    column-gap: 10px;
+    row-gap: 3px;
+    align-items: center;
+    padding: 12px 14px !important;
+  }
+
+  #appointmentsTable td {
+    display: block !important;
+    padding: 0 !important;
+    border: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+  }
+
+  #appointmentsTable td::before {
+    display: none !important;
+  }
+
+  /* no labels */
+  #appointmentsTable td:not([data-label]) {
+    grid-column: 1 / -1;
+  }
+
+  #appointmentsTable td[data-label="Code"] {
+    display: none !important;
+  }
+
+  #appointmentsTable td[data-label="Patient"] {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.95rem;
+  }
+
+  #appointmentsTable td[data-label="Status"] {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  #appointmentsTable td[data-label="Service"] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #appointmentsTable td[data-label="Date & Time"] {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    text-align: right;
+  }
+
+  #appointmentsTable td[data-label="Doctor"] {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 6px;
+  }
+
+  #appointmentsTable td[data-label="Actions"] {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 10px;
+    padding-top: 10px !important;
+    border-top: 1px solid var(--gray-100) !important;
+  }
+}
+
+/* ============================================================
+   PHONE "MORE" SHEET + NO SIDE MENU ON PHONES
+   ============================================================ */
+#phone-more,
+#phone-more-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* The side menu is for laptops only. Phones use the bottom bar + More sheet. */
+  #sidebar,
+  #sidebar-backdrop {
+    display: none !important;
+  }
+
+  #phone-more-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    z-index: 1050;
+  }
+
+  #phone-more-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #phone-more {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1051;
+    max-height: 82vh;
+    overflow-y: auto;
+    background: var(--white);
+    border-radius: 22px 22px 0 0;
+    padding: 8px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+    transform: translateY(105%);
+    transition: transform 0.28s cubic-bezier(.2, .8, .2, 1);
+  }
+
+  #phone-more.open {
+    transform: translateY(0);
+  }
+
+  [data-theme="dark"] #phone-more {
+    background: #1E293B;
+  }
+
+  #phone-more .pm-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--gray-300);
+    margin: 4px auto 14px;
+  }
+
+  #phone-more .pm-user {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 4px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    margin-bottom: 14px;
+  }
+
+  #phone-more .pm-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  #phone-more .pm-name {
+    font-weight: 700;
+    color: var(--gray-900);
+    line-height: 1.2;
+  }
+
+  #phone-more .pm-role {
+    font-size: 0.78rem;
+    color: var(--gray-500);
+  }
+
+  #phone-more .pm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  #phone-more .pm-grid a,
+  #phone-more .pm-actions a,
+  #phone-more .pm-actions button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 78px;
+    padding: 10px 6px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-100);
+    border-radius: 16px;
+    color: var(--gray-700);
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    text-decoration: none;
+    font-family: inherit;
+  }
+
+  #phone-more i {
+    font-size: 1.4rem;
+    line-height: 1;
+    color: var(--primary);
+  }
+
+  #phone-more .active {
+    background: var(--primary-bg);
+    border-color: var(--blue-200);
+    color: var(--primary);
+  }
+
+  #phone-more .pm-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  #phone-more .pm-actions .pm-logout {
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+    color: var(--danger);
+  }
+
+  #phone-more .pm-actions .pm-logout i {
+    color: var(--danger);
+  }
+
+  [data-theme="dark"] #phone-more .pm-grid a,
+  [data-theme="dark"] #phone-more .pm-actions a,
+  [data-theme="dark"] #phone-more .pm-actions button {
+    background: #0F172A;
+    border-color: #334155;
+    color: #CBD5E1;
+  }
+}
+
+@media (max-width: 768px) {
+  #phone-more .pm-user>i {
+    font-size: 1rem;
+    color: var(--gray-400);
+  }
+}
