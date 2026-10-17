@@ -6,6 +6,12 @@
 $current_user_name = $current_user_name ?? 'User';
 $current_user_role = $current_user_role ?? 'staff';
 
+// Multi-branch support
+if (!function_exists('current_branch_id')) {
+    require_once __DIR__ . '/branch.php';
+}
+handle_branch_switch();
+
 $initials = strtoupper(substr($current_user_name, 0, 1));
 
 // Returns 'active' CSS class if the current URL contains the given path segment
@@ -139,6 +145,32 @@ if (!function_exists('nav_active')) {
                 <i class="bi bi-building" aria-hidden="true"></i><span class="nav-label">Clinic Settings</span>
             </a>
         </li>
+
+        <?php if (is_super_admin()): ?>
+        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Branches</span></li>
+        <li role="presentation">
+            <a href="<?php echo BASE_URL; ?>modules/branches/list.php" class="<?php echo nav_active('/branches/') ? 'active' : ''; ?>"
+               <?php echo nav_active('/branches/') ? 'aria-current="page"' : ''; ?>>
+                <i class="bi bi-diagram-3-fill" aria-hidden="true"></i><span class="nav-label">Manage Branches</span>
+            </a>
+        </li>
+        <li role="presentation">
+            <div style="padding:4px 16px 8px;">
+                <select onchange="location.href='<?php echo BASE_URL; ?>dashboard.php?switch_branch='+this.value"
+                    style="width:100%;font-size:.78rem;padding:6px 10px;border-radius:8px;
+                           border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);
+                           color:rgba(255,255,255,0.9);cursor:pointer;">
+                    <option value="0" <?php echo current_branch_id()===0?'selected':''; ?>>📋 All Branches</option>
+                    <?php foreach(get_all_branches($conn) as $br): ?>
+                    <option value="<?php echo $br['id']; ?>" <?php echo current_branch_id()===$br['id']?'selected':''; ?>>
+                        🏥 <?php echo e($br['name']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </li>
+        <?php endif; ?>
+
         <?php endif; ?>
 
     </ul>
@@ -186,3 +218,4 @@ if (!function_exists('nav_active')) {
     </div>
 
 </nav>
+<?php include __DIR__ . '/bottom-nav.php'; ?>
