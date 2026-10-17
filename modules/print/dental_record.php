@@ -305,6 +305,7 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
     <!-- Tooth Chart -->
     <div class="chart-section">
         <?php
+        $chart_marks = parse_tooth_marks($record['tooth_marks'] ?? '');
         $chart_uid = 'print_' . $id;
         $tc_mode   = 'display';
         include dirname(__FILE__) . '/../../includes/tooth_chart_grid.php';
