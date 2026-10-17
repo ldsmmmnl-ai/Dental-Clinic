@@ -6,9 +6,7 @@
 require_once '../../includes/config.php';
 require_once '../../includes/db.php';
 require_once '../../includes/auth.php';
-require_once '../../includes/branch.php';
-require_once '../../includes/AppointmentService.php';
-handle_branch_switch();
+require_once '../../includes/AppointmentService.php'; // ← OOP: load the service class
 
 $page_title        = 'Appointments';
 $current_user_role = $_SESSION['role'] ?? 'user';
@@ -38,10 +36,9 @@ $search        = trim($_GET['search'] ?? '');
 $type_filter   = $_GET['type']   ?? '';
 
 // Pre-load doctors for filter dropdown (lookup data — kept as direct query)
-$_appt_bid = current_branch_id();
-$_doc_where = $_appt_bid > 0 ? "AND branch_id = $_appt_bid" : "";
-$all_doctors = $conn->query("SELECT id, full_name FROM doctors WHERE is_active = TRUE $_doc_where ORDER BY full_name ASC")
-     ->fetchAll(PDO::FETCH_ASSOC);
+$all_doctors = sc_get('doc_list') ?? sc_set('doc_list',
+    $conn->query("SELECT id, full_name FROM doctors WHERE is_active = TRUE ORDER BY full_name ASC")
+         ->fetchAll(PDO::FETCH_ASSOC), 300);
 
 // Whitelist status and type values
 $allowed_statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no-show'];
@@ -61,7 +58,6 @@ $filters = [
     'doctor_id' => $doctor_filter ?: null,
     'type'      => $type_filter,
     'search'    => $search,
-    'branch_id' => current_branch_id() ?: null,
 ];
 
 // ── Data access via AppointmentService (OOP) ─────────────────────────────────
@@ -202,12 +198,6 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             <?php endforeach; ?>
         </div>
 
-        <!-- Phone only: one button opens the search + filters -->
-        <button type="button" class="phone-filter-btn" onclick="document.getElementById('apptFilters').classList.toggle('open')">
-            <i class="bi bi-funnel"></i> Search &amp; Filters
-        </button>
-        <div class="appt-filters<?php echo ($search || $date_filter || $doctor_filter || $type_filter) ? ' open' : ''; ?>" id="apptFilters">
-
         <!-- ── Type Filter Pills ────────────────────────────────── -->
         <div class="mobile-type-bar" style="display:flex;gap:6px;margin-bottom:16px;align-items:center;overflow-x:auto;padding-bottom:2px;">
             <span style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Type:</span>
@@ -285,7 +275,6 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                 </div>
             </div>
         </form>
-        </div><!-- /#apptFilters -->
 
         <!-- ── Table ────────────────────────────────────────────── -->
         <div class="mobile-card-table-wrap" style="background:var(--white);border-radius:14px;border:var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
@@ -1040,7 +1029,7 @@ function doConfirmAppt() {
                     <label class="form-label" style="font-weight:600;">Patient Search</label>
                     <div style="position:relative;">
                         <input type="text" id="drawerPatientSearch" class="form-control"
-                            placeholder="Search name or phone…"
+                            placeholder="Search by name or phone to find returning patient…"
                             autocomplete="off" oninput="searchPatient(this.value)">
                         <div id="drawerPatientResults" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:500;background:var(--white);border:var(--border);border-top:none;border-radius:0 0 8px 8px;box-shadow:0 6px 20px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;"></div>
                     </div>
