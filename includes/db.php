@@ -115,6 +115,10 @@ $conn->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['CompatPDOStatement']);
         if (!isset($existing['fee_charged'])) {
             $db->exec("ALTER TABLE `dental_records` ADD COLUMN `fee_charged` DECIMAL(10,2) NULL DEFAULT NULL AFTER `visit_date`");
         }
+        // tooth_marks — letters typed into the tooth chart boxes (X, P, ...) as JSON
+        if (!isset($existing['tooth_marks'])) {
+            $db->exec("ALTER TABLE `dental_records` ADD COLUMN `tooth_marks` TEXT DEFAULT NULL AFTER `tooth_status`");
+        }
         // profile_photo on users
         $res2 = $db->query("SHOW COLUMNS FROM `users` LIKE 'profile_photo'");
         if ($res2 && empty($res2->fetchAll())) {
@@ -128,6 +132,32 @@ $conn->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['CompatPDOStatement']);
 // ─────────────────────────────────────────────────────────────────────────────
 
 // --- Helper functions ---------------------------------------------------------
+
+// Tooth-chart marks (the X / P letters typed into the chart boxes).
+// Stored as JSON like {"16":"X","46":"P"}; keys are FDI tooth codes.
+function sanitize_tooth_marks($raw): ?string {
+    if (!is_string($raw) || trim($raw) === '') return null;
+    $data = json_decode($raw, true);
+    if (!is_array($data)) return null;
+    $valid = [];
+    foreach ([[11,18],[21,28],[31,38],[41,48],[51,55],[61,65],[71,75],[81,85]] as [$a,$b]) {
+        for ($i = $a; $i <= $b; $i++) $valid[(string)$i] = true;
+    }
+    $out = [];
+    foreach ($data as $k => $v) {
+        $k = (string)$k;
+        if (!isset($valid[$k]) || !is_string($v)) continue;
+        $v = strtoupper(preg_replace('/[^A-Za-z0-9+\-\/.]/', '', $v));
+        $v = substr($v, 0, 3);
+        if ($v !== '') $out[$k] = $v;
+    }
+    return $out ? json_encode($out) : null;
+}
+function parse_tooth_marks($json): array {
+    if (!is_string($json) || $json === '') return [];
+    $d = json_decode($json, true);
+    return is_array($d) ? $d : [];
+}
 
 // Return the real client IP, accounting for reverse proxies.
 function get_client_ip(): string {
