@@ -405,7 +405,7 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
         flex: 1 !important;
         text-align: center !important;
     }
-    .cal-nav-bar > span { display: none !important; } /* hide "X appointments this month" text */
+    .cal-nav-bar > span:not(.cal-nav-label) { display: none !important; }
 
     /* ── Legend: horizontal scroll ── */
     .svc-legend {
