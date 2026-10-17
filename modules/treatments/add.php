@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $service_id     = intval($_POST['service_id'] ?? 0) ?: null;
     $tooth_number   = trim($_POST['tooth_number'] ?? '');
     // tooth_number is TEXT — no length limit, never truncate
+    $tooth_marks    = sanitize_tooth_marks($_POST['tooth_marks'] ?? '');
     $tooth_status   = trim($_POST['tooth_status'] ?? 'normal');
     $valid_statuses = ['normal','caries','filling','extraction','missing','crown','rootcanal','bridge','implant','denture'];
     if (!in_array($tooth_status, $valid_statuses)) $tooth_status = 'normal';
@@ -98,10 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $conn->prepare(
                 "INSERT INTO dental_records
-                 (patient_id, appointment_id, service_id, tooth_number, tooth_status,
+                 (patient_id, appointment_id, service_id, tooth_number, tooth_status, tooth_marks,
                   chief_complaint, diagnosis, treatment_done, materials_used, treatment_plan,
                   medications_prescribed, next_visit_notes, recorded_by, visit_date, fee_charged)
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
             );
             $stmt->execute([
                 $patient_id,
@@ -109,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $service_id,
                 $tooth_number ?: null,
                 $tooth_status,
+                $tooth_marks,
                 $chief_complaint ?: null,
                 $diagnosis ?: null,
                 $treatment_done,
