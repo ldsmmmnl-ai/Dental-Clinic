@@ -9,6 +9,9 @@ $page_title = 'Patient Profile';
 // ── Handle inline dental record submission ────────────────────────────────
 $inline_success = '';
 $inline_error   = '';
+// One-time message left by the "Cancel payment" action (it redirects back here)
+if (!empty($_SESSION['pv_flash_ok']))  { $inline_success = $_SESSION['pv_flash_ok'];  unset($_SESSION['pv_flash_ok']); }
+if (!empty($_SESSION['pv_flash_err'])) { $inline_error   = $_SESSION['pv_flash_err']; unset($_SESSION['pv_flash_err']); }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record'])) {
     validate_csrf();
     $pid          = intval($_POST['patient_id'] ?? 0);
@@ -112,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_add_visit_entry'])) 
                      VALUES (?,?,?,?,?,?)"
                 );
                 $vi->execute([$dr_id, $visit_d, $tx, $fee_v, $pm_db, $current_user_id]);
+                $new_visit_id = (int)$conn->lastInsertId();
 
                 // If a fee was collected, apply it as a payment against the main open bill
                 // for this dental record — do NOT create a separate orphan bill.
@@ -138,6 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_add_visit_entry'])) 
                         $conn->prepare(
                             "UPDATE bills SET amount_paid = ?, payment_method = ?, status = ? WHERE id = ?"
                         )->execute([$new_paid, $pm_db, $new_status, $main_bill['id']]);
+                        // Remember which bill + how much was applied so the payment can be cancelled later
+                        $conn->prepare("UPDATE dental_record_visits SET bill_id = ?, applied_amount = ? WHERE id = ?")
+                             ->execute([$main_bill['id'], round($new_paid - (float)$main_bill['amount_paid'], 2), $new_visit_id]);
                         log_action($conn, $current_user_id, $current_user_name ?? 'System',
                             'Payment via Visit Entry', 'billing', $main_bill['id'],
                             "Bill #{$main_bill['id']} | Added ₱$fee_v via visit entry on DR #$dr_id | Status: $new_status"
@@ -147,6 +154,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_add_visit_entry'])) 
                 }
             }
         } catch (Exception $e) { /* silent — redirect back */ }
+    }
+    header("Location: view.php?id={$pid_pre}");
+    exit();
+}
+// ── Handle "Cancel payment" on a return-visit entry ────────────────────────
+// Takes the money back off the bill (so a mistyped amount can be redone) and keeps
+// the entry in the log, crossed out, with who cancelled it and why.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_void_visit_entry'])) {
+    validate_csrf();
+    $pid_pre = intval($_GET['id'] ?? 0);
+    $ve_id   = intval($_POST['visit_entry_id'] ?? 0);
+    $reason  = mb_substr(trim($_POST['void_reason'] ?? ''), 0, 255);
+
+    if ($reason === '') {
+        $_SESSION['pv_flash_err'] = 'Please type a reason for cancelling the payment.';
+    } else {
+        try {
+            $conn->beginTransaction();
+            $q = $conn->prepare("
+                SELECT drv.*, dr.patient_id AS dr_patient, dr.appointment_id AS dr_appt
+                FROM dental_record_visits drv
+                JOIN dental_records dr ON dr.id = drv.dental_record_id
+                WHERE drv.id = ? LIMIT 1 FOR UPDATE
+            ");
+            $q->execute([$ve_id]);
+            $ve = $q->fetch(PDO::FETCH_ASSOC);
+            $q->closeCursor();
+
+            if (!$ve || (int)$ve['dr_patient'] !== $pid_pre) {
+                $conn->rollBack();
+                $_SESSION['pv_flash_err'] = 'That entry could not be found.';
+            } elseif (!empty($ve['voided_at'])) {
+                $conn->rollBack();
+                $_SESSION['pv_flash_err'] = 'That payment was already cancelled.';
+            } else {
+                // Find the bill this payment was applied to
+                $bill = null;
+                if (!empty($ve['bill_id'])) {
+                    $b = $conn->prepare("SELECT id, bill_code, amount_due, amount_paid FROM bills WHERE id = ? AND patient_id = ? LIMIT 1 FOR UPDATE");
+                    $b->execute([$ve['bill_id'], $pid_pre]);
+                    $bill = $b->fetch(PDO::FETCH_ASSOC);
+                    $b->closeCursor();
+                }
+                if (!$bill) {   // older entries: same lookup the save step used, but any status
+                    $appt_for = (int)($ve['dr_appt'] ?? 0);
+                    $b = $conn->prepare("
+                        SELECT id, bill_code, amount_due, amount_paid FROM bills
+                        WHERE patient_id = ?
+                          AND (dental_record_id = ?
+                               OR (? > 0 AND appointment_id = ? AND dental_record_id IS NULL))
+                        ORDER BY id DESC LIMIT 1 FOR UPDATE
+                    ");
+                    $b->execute([$pid_pre, $ve['dental_record_id'], $appt_for, $appt_for]);
+                    $bill = $b->fetch(PDO::FETCH_ASSOC);
+                    $b->closeCursor();
+                }
+
+                $reversed = 0.0;
+                if ($bill) {
+                    $paid     = (float)$bill['amount_paid'];
+                    $reversed = ($ve['applied_amount'] !== null)
+                        ? (float)$ve['applied_amount']
+                        : min((float)$ve['fee'], $paid);
+                    $reversed = max(0.0, min($reversed, $paid));
+                    $new_paid = max(0.0, round($paid - $reversed, 2));
+                    $new_stat = bill_status_for((float)$bill['amount_due'], $new_paid);
+                    $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
+                         ->execute([$new_paid, $new_stat, $new_paid, $bill['id']]);
+                }
+                $conn->prepare("UPDATE dental_record_visits SET voided_at = NOW(), voided_by = ?, void_reason = ? WHERE id = ?")
+                     ->execute([$current_user_id, $reason, $ve_id]);
+                $conn->commit();
+
+                log_action($conn, $current_user_id, $current_user_name ?? 'System',
+                    'Cancelled Payment', 'billing', $bill['id'] ?? null,
+                    "Visit entry #$ve_id | Fee entered: ₱" . number_format((float)$ve['fee'], 2) .
+                    " | Taken off bill: ₱" . number_format($reversed, 2) . " | Reason: $reason");
+                if ($bill) {
+                    notify($conn, 'payment', 'Payment Cancelled',
+                        ($current_user_name ?? 'A user') . " cancelled ₱" . number_format($reversed, 2) .
+                        " on bill {$bill['bill_code']}. Reason: $reason",
+                        'modules/billing/view.php?id=' . $bill['id']);
+                }
+                $_SESSION['pv_flash_ok'] = $bill
+                    ? 'Payment cancelled — ₱' . number_format($reversed, 2) . ' was taken off the bill. You can now enter the correct amount with Return Visit.'
+                    : 'Entry cancelled. No bill was linked to it, so nothing else changed.';
+            }
+        } catch (Exception $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('[VOID PAYMENT] ' . $e->getMessage());
+            $_SESSION['pv_flash_err'] = 'Could not cancel the payment. Please try again.';
+        }
     }
     header("Location: view.php?id={$pid_pre}");
     exit();
@@ -192,9 +291,10 @@ $dr_stmt->closeCursor();
 
 // Fetch all return-visit entries per dental record for this patient
 $ve_stmt = $conn->prepare("
-    SELECT drv.*, u.full_name AS recorded_by_name
+    SELECT drv.*, u.full_name AS recorded_by_name, uv.full_name AS voided_by_name
     FROM dental_record_visits drv
-    LEFT JOIN users u ON drv.recorded_by = u.id
+    LEFT JOIN users u  ON drv.recorded_by = u.id
+    LEFT JOIN users uv ON drv.voided_by   = uv.id
     WHERE drv.dental_record_id IN (
         SELECT id FROM dental_records WHERE patient_id = ?
     )
@@ -883,15 +983,52 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                     </tr>
                                                     <?php endif; ?>
                                                     <!-- Return visit rows -->
-                                                    <?php foreach ($visit_entries[$rec['id']] ?? [] as $_ve): ?>
-                                                    <tr>
-                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;white-space:nowrap;font-size:0.8rem;vertical-align:top;"><?php echo date('M d, Y', strtotime($_ve['visit_date'])); ?></td>
+                                                    <?php foreach ($visit_entries[$rec['id']] ?? [] as $_ve):
+                                                        $_voided = !empty($_ve['voided_at']); ?>
+                                                    <tr<?php if ($_voided): ?> style="background:#fef2f2;"<?php endif; ?>>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;white-space:nowrap;font-size:0.8rem;vertical-align:top;<?php if ($_voided): ?>text-decoration:line-through;color:var(--gray-400);<?php endif; ?>"><?php echo date('M d, Y', strtotime($_ve['visit_date'])); ?></td>
                                                         <?php $ve_full = $_ve['treatment_rendered']; $ve_short = mb_strlen($ve_full) > 120 ? mb_substr($ve_full,0,120).'…' : $ve_full; ?>
-                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;font-size:0.82rem;vertical-align:top;max-width:320px;" <?php if(mb_strlen($ve_full)>120): ?>title="<?php echo e($ve_full); ?>"<?php endif; ?>><?php echo e($ve_short); ?></td>
-                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;color:var(--success);vertical-align:top;">
-                                                            <?php echo ($_ve['fee'] > 0) ? '&#8369;'.number_format($_ve['fee'],2) : '&mdash;'; ?>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;font-size:0.82rem;vertical-align:top;max-width:320px;" <?php if(mb_strlen($ve_full)>120): ?>title="<?php echo e($ve_full); ?>"<?php endif; ?>>
+                                                            <span<?php if ($_voided): ?> style="text-decoration:line-through;color:var(--gray-400);"<?php endif; ?>><?php echo e($ve_short); ?></span>
+                                                            <?php if ($_voided): ?>
+                                                            <div style="font-size:0.7rem;color:var(--danger);margin-top:3px;">
+                                                                <strong>Payment cancelled</strong>
+                                                                <?php if (!empty($_ve['voided_by_name'])): ?> by <?php echo e($_ve['voided_by_name']); ?><?php endif; ?>
+                                                                &middot; <?php echo date('M d, Y g:i A', strtotime($_ve['voided_at'])); ?>
+                                                                <?php if (!empty($_ve['void_reason'])): ?><br>Reason: <?php echo e($_ve['void_reason']); ?><?php endif; ?>
+                                                            </div>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;vertical-align:top;color:<?php echo $_voided ? 'var(--gray-400)' : 'var(--success)'; ?>;">
+                                                            <span<?php if ($_voided): ?> style="text-decoration:line-through;"<?php endif; ?>><?php echo ($_ve['fee'] > 0) ? '&#8369;'.number_format($_ve['fee'],2) : '&mdash;'; ?></span>
+                                                            <?php if (!$_voided && $_ve['fee'] > 0): ?>
+                                                            <div><button type="button" onclick="toggleVoidRow(<?php echo (int)$_ve['id']; ?>)"
+                                                                title="Wrong amount? Cancel this payment and enter it again"
+                                                                style="background:none;border:none;padding:0;margin-top:2px;color:var(--danger);font-size:0.68rem;font-weight:600;cursor:pointer;text-decoration:underline;">Cancel payment</button></div>
+                                                            <?php endif; ?>
                                                         </td>
                                                     </tr>
+                                                    <?php if (!$_voided && $_ve['fee'] > 0): ?>
+                                                    <tr id="voidRow_<?php echo (int)$_ve['id']; ?>" style="display:none;background:#fff7f7;">
+                                                        <td colspan="3" style="border:1px solid var(--gray-200);padding:10px 12px;">
+                                                            <form method="POST" action="view.php?id=<?php echo $id; ?>"
+                                                                  onsubmit="return confirm('Cancel this &#8369;<?php echo number_format($_ve['fee'],2); ?> payment? It will be taken off the bill.');">
+                                                                <?php echo csrf_field(); ?>
+                                                                <input type="hidden" name="_void_visit_entry" value="1">
+                                                                <input type="hidden" name="visit_entry_id" value="<?php echo (int)$_ve['id']; ?>">
+                                                                <div style="font-size:0.78rem;margin-bottom:6px;color:var(--gray-700);">
+                                                                    This takes <strong>&#8369;<?php echo number_format($_ve['fee'],2); ?></strong> back off the bill. The entry stays in the log, crossed out. Afterwards use <em>Return Visit</em> to enter the correct amount.
+                                                                </div>
+                                                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                                                    <input type="text" name="void_reason" required maxlength="255" class="form-control form-control-sm"
+                                                                           placeholder="Reason, e.g. typed 800 instead of 200" style="flex:1;min-width:200px;border-radius:6px;font-size:0.82rem;">
+                                                                    <button type="submit" class="btn btn-danger btn-sm" style="font-size:0.78rem;border-radius:6px;font-weight:700;">Cancel payment</button>
+                                                                    <button type="button" onclick="toggleVoidRow(<?php echo (int)$_ve['id']; ?>)" class="btn btn-outline-secondary btn-sm" style="font-size:0.78rem;border-radius:6px;">Keep it</button>
+                                                                </div>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endif; ?>
                                                     <?php endforeach; ?>
                                                 </tbody>
                                             </table>
@@ -1159,6 +1296,11 @@ function calcInlineBalance() {
     }
 }
 
+function toggleVoidRow(id) {
+    var el = document.getElementById('voidRow_' + id);
+    if (!el) return;
+    el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'table-row' : 'none';
+}
 function toggleAddVisit(recId) {
     var el = document.getElementById('addVisitForm_' + recId);
     if (!el) return;
