@@ -29,7 +29,41 @@ $bv_stmt->closeCursor();
 
 if (!$bill) { header('Location: list.php'); exit(); }
 
+// ── Correct / cancel a payment that was entered wrongly ─────────────────────
+$fix_error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_correct_payment'])) {
+    validate_csrf();
+    $new_paid = round((float)($_POST['new_paid'] ?? -1), 2);
+    $reason   = mb_substr(trim($_POST['fix_reason'] ?? ''), 0, 255);
+    $old_paid = (float)$bill['amount_paid'];
+    $due      = (float)$bill['amount_due'];
+
+    if ($reason === '') {
+        $fix_error = 'Please type a reason for the correction.';
+    } elseif ($new_paid < 0 || $new_paid > $due + 0.004) {
+        $fix_error = 'The amount paid must be between ₱0.00 and the amount due (₱' . number_format($due, 2) . ').';
+    } elseif (abs($new_paid - $old_paid) < 0.005) {
+        $fix_error = 'That is the same amount already recorded — nothing to change.';
+    } else {
+        $new_status = bill_status_for($due, $new_paid);
+        $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
+             ->execute([$new_paid, $new_status, $new_paid, $id]);
+        $uid  = $_SESSION['user_id'] ?? 0;
+        $uname = $_SESSION['full_name'] ?? 'System';
+        log_action($conn, $uid, $uname, 'Corrected Payment', 'billing', $id,
+            "Bill: {$bill['bill_code']} | Paid changed ₱" . number_format($old_paid, 2) . " → ₱" . number_format($new_paid, 2) .
+            " | New status: $new_status | Reason: $reason");
+        notify($conn, 'payment', 'Payment Corrected',
+            "$uname changed the paid amount on bill {$bill['bill_code']} from ₱" . number_format($old_paid, 2) .
+            " to ₱" . number_format($new_paid, 2) . ". Reason: $reason",
+            'modules/billing/view.php?id=' . $id);
+        header('Location: view.php?id=' . $id . '&corrected=1');
+        exit();
+    }
+}
+
 $balance   = $bill['amount_due'] - $bill['amount_paid'];
+$corrected = isset($_GET['corrected']);
 $created   = isset($_GET['created']);
 $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
 ?><!DOCTYPE html>
@@ -83,6 +117,10 @@ $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
                 </a>
             </div>
         </div>
+
+        <?php if ($corrected): ?>
+        <div class="alert alert-success"><i class="bi bi-check-circle-fill me-2"></i>Payment corrected. The bill now shows the new amount paid. Use <strong>Record Payment</strong> to add any remaining payment.</div>
+        <?php endif; ?>
 
         <?php if ($created && $flow_done): ?>
         <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
@@ -190,6 +228,43 @@ $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Cancel / correct a wrong payment -->
+                <?php if ((float)$bill['amount_paid'] > 0): ?>
+                <div class="card" style="border-color:#fecaca;">
+                    <div class="card-header" style="cursor:pointer;" onclick="var b=document.getElementById('fixPayBody');b.style.display=b.style.display==='none'?'block':'none';">
+                        <i class="bi bi-arrow-counterclockwise me-2" style="color:var(--danger);"></i>Wrong amount? Cancel / correct payment
+                    </div>
+                    <div class="card-body" id="fixPayBody" style="display:<?php echo $fix_error ? 'block' : 'none'; ?>;">
+                        <?php if ($fix_error): ?><div class="alert alert-danger py-2"><?php echo e($fix_error); ?></div><?php endif; ?>
+                        <p style="font-size:0.82rem;color:var(--gray-600);margin-bottom:10px;">
+                            Currently recorded as paid: <strong>₱<?php echo number_format($bill['amount_paid'],2); ?></strong> of ₱<?php echo number_format($bill['amount_due'],2); ?>.
+                            Type what the patient <em>actually</em> paid so far. Use <strong>0</strong> to cancel the payment completely, then record it again.
+                            This change is saved in the audit log with your reason.
+                        </p>
+                        <p style="font-size:0.76rem;color:var(--gray-500);margin-bottom:10px;">
+                            Tip: if the amount was typed in a <em>Return Visit</em> on the patient profile, cancel it there instead (Visit Log → “Cancel payment”) so the log and the bill stay matching.
+                        </p>
+                        <form method="POST" onsubmit="return confirm('Change the amount paid on this bill?');">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="_correct_payment" value="1">
+                            <div class="row g-2 mb-2">
+                                <div class="col-sm-4">
+                                    <label class="form-label" style="font-size:0.72rem;font-weight:700;">Correct amount paid (₱)</label>
+                                    <input type="number" name="new_paid" class="form-control form-control-sm" step="0.01" min="0"
+                                           max="<?php echo e($bill['amount_due']); ?>" required placeholder="0.00">
+                                </div>
+                                <div class="col-sm-8">
+                                    <label class="form-label" style="font-size:0.72rem;font-weight:700;">Reason *</label>
+                                    <input type="text" name="fix_reason" class="form-control form-control-sm" maxlength="255" required
+                                           placeholder="e.g. typed 800 instead of 200">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i>Save correction</button>
+                        </form>
+                    </div>
+                </div>
+                <?php endif; ?>
 
             </div>
 
