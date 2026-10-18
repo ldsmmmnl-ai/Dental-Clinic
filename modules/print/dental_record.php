@@ -62,7 +62,7 @@ $back_rows[] = [
 $stmt2 = $conn->prepare("
     SELECT visit_date, treatment_rendered AS treatment, fee, NULL AS service_name
     FROM dental_record_visits
-    WHERE dental_record_id = ?
+    WHERE dental_record_id = ? AND voided_at IS NULL
     ORDER BY visit_date ASC, id ASC
 ");
 $stmt2->execute([$id]);
