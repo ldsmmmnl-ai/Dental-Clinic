@@ -66,9 +66,33 @@ $stmt2 = $conn->prepare("
     ORDER BY visit_date ASC, id ASC
 ");
 $stmt2->execute([$id]);
+$visit_fee_sum = 0.0;
 foreach ($stmt2->fetchAll(PDO::FETCH_ASSOC) as $_ve) {
+    $_ve['is_payment'] = true;          // a return-visit fee is money received, not a new charge
+    $visit_fee_sum += (float)($_ve['fee'] ?? 0);
     $back_rows[] = $_ve;
 }
+
+// Totals: "Charged" is what the treatment costs; return-visit fees are payments toward it.
+// If a bill is linked, its amounts are the truth (they also reflect cancelled payments).
+$tb = $conn->prepare("
+    SELECT amount_due, amount_paid FROM bills
+    WHERE patient_id = ?
+      AND (dental_record_id = ? OR (? > 0 AND appointment_id = ? AND dental_record_id IS NULL))
+    ORDER BY id DESC LIMIT 1
+");
+$tb_appt = (int)($record['appointment_id'] ?? 0);
+$tb->execute([$record['patient_id'], $id, $tb_appt, $tb_appt]);
+$tot_bill = $tb->fetch(PDO::FETCH_ASSOC);
+$tb->closeCursor();
+if ($tot_bill) {
+    $total_charged = (float)$tot_bill['amount_due'];
+    $total_paid    = (float)$tot_bill['amount_paid'];
+} else {
+    $total_charged = (float)($initial_fee ?? 0);
+    $total_paid    = $visit_fee_sum;
+}
+$total_balance = max(0.0, round($total_charged - $total_paid, 2));
 
 $dob     = $record['date_of_birth'];
 $age     = $dob ? date_diff(date_create($dob), date_create('today'))->y : null;
@@ -399,6 +423,7 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
             <td class="col-fee">
                 <?php if (!empty($r['fee']) && $r['fee'] > 0): ?>
                 <span class="visit-fee">₱<?= number_format($r['fee'], 2) ?></span>
+                <?php if (!empty($r['is_payment'])): ?><br><span style="font-size:7pt;color:#444;">paid</span><?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>
@@ -410,13 +435,18 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
         <?php endfor; ?>
 
         <!-- Total row -->
-        <?php
-        $total_fee = array_sum(array_column($back_rows, 'fee'));
-        ?>
-        <?php if ($total_fee > 0): ?>
+        <?php if ($total_charged > 0 || $total_paid > 0): ?>
         <tr class="total-row">
             <td class="col-date" colspan="2" style="text-align:right;padding-right:8px;">Total Charged:</td>
-            <td class="col-fee">₱<?= number_format($total_fee, 2) ?></td>
+            <td class="col-fee">₱<?= number_format($total_charged, 2) ?></td>
+        </tr>
+        <tr class="total-row">
+            <td class="col-date" colspan="2" style="text-align:right;padding-right:8px;">Total Paid:</td>
+            <td class="col-fee">₱<?= number_format($total_paid, 2) ?></td>
+        </tr>
+        <tr class="total-row">
+            <td class="col-date" colspan="2" style="text-align:right;padding-right:8px;">Balance:</td>
+            <td class="col-fee"><?= $total_balance > 0 ? '₱' . number_format($total_balance, 2) : 'PAID' ?></td>
         </tr>
         <?php endif; ?>
         </tbody>
