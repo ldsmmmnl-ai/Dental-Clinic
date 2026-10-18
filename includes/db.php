@@ -119,6 +119,19 @@ $conn->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['CompatPDOStatement']);
         if (!isset($existing['tooth_marks'])) {
             $db->exec("ALTER TABLE `dental_records` ADD COLUMN `tooth_marks` TEXT DEFAULT NULL AFTER `tooth_status`");
         }
+        // dental_record_visits — columns that let a wrong payment be cancelled (voided)
+        $vt = $db->query("SHOW TABLES LIKE 'dental_record_visits'");
+        if ($vt && $vt->fetch()) {
+            $vex = [];
+            foreach ($db->query("SHOW COLUMNS FROM `dental_record_visits`")->fetchAll(PDO::FETCH_ASSOC) as $vc) {
+                $vex[$vc['Field']] = true;
+            }
+            if (!isset($vex['bill_id']))        $db->exec("ALTER TABLE `dental_record_visits` ADD COLUMN `bill_id` INT NULL DEFAULT NULL");
+            if (!isset($vex['applied_amount'])) $db->exec("ALTER TABLE `dental_record_visits` ADD COLUMN `applied_amount` DECIMAL(10,2) NULL DEFAULT NULL");
+            if (!isset($vex['voided_at']))      $db->exec("ALTER TABLE `dental_record_visits` ADD COLUMN `voided_at` DATETIME NULL DEFAULT NULL");
+            if (!isset($vex['voided_by']))      $db->exec("ALTER TABLE `dental_record_visits` ADD COLUMN `voided_by` INT NULL DEFAULT NULL");
+            if (!isset($vex['void_reason']))    $db->exec("ALTER TABLE `dental_record_visits` ADD COLUMN `void_reason` VARCHAR(255) NULL DEFAULT NULL");
+        }
         // profile_photo on users
         $res2 = $db->query("SHOW COLUMNS FROM `users` LIKE 'profile_photo'");
         if ($res2 && empty($res2->fetchAll())) {
@@ -132,6 +145,12 @@ $conn->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['CompatPDOStatement']);
 // ─────────────────────────────────────────────────────────────────────────────
 
 // --- Helper functions ---------------------------------------------------------
+
+// Bill status from the amounts: nothing paid = unpaid, fully covered = paid, otherwise partial.
+function bill_status_for(float $due, float $paid): string {
+    if ($paid <= 0.004) return 'unpaid';
+    return ($due > 0 && $paid >= $due - 0.004) ? 'paid' : 'partial';
+}
 
 // Tooth-chart marks (the X / P letters typed into the chart boxes).
 // Stored as JSON like {"16":"X","46":"P"}; keys are FDI tooth codes.
