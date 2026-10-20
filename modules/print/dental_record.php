@@ -36,7 +36,8 @@ $back_rows = [];
 // Row 0 — the initial record itself.
 // If fee_charged was not set (treatment created via appointment flow without inline fee),
 // fall back to the linked bill's amount_due so the print always shows the correct figure.
-$initial_fee = ($record['fee_charged'] ?? null) > 0 ? (float)$record['fee_charged'] : null;
+// The linked bill's amount is the real price, so it is looked up first.
+$initial_fee = null;
 if ($initial_fee === null) {
     $appt_id_for_print = (int)($record['appointment_id'] ?? 0);
     $fb = $conn->prepare("
@@ -50,6 +51,16 @@ if ($initial_fee === null) {
     if ($fb_row && $fb_row['amount_due'] > 0) {
         $initial_fee = (float)$fb_row['amount_due'];
     }
+}
+// No bill yet: use the fee typed on the record, then the service's catalog price.
+if ($initial_fee === null && ($record['fee_charged'] ?? null) > 0) {
+    $initial_fee = (float)$record['fee_charged'];
+}
+if ($initial_fee === null && !empty($record['service_id'])) {
+    $sp = $conn->prepare("SELECT price FROM services WHERE id = ? LIMIT 1");
+    $sp->execute([$record['service_id']]);
+    $sp_price = (float)$sp->fetchColumn();
+    if ($sp_price > 0) $initial_fee = $sp_price;
 }
 $back_rows[] = [
     'visit_date'   => $record['visit_date'],
