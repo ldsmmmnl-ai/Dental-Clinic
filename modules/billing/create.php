@@ -117,6 +117,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($notes) > 500) {
         $error = 'Notes must be 500 characters or fewer.';
     } else {
+        // ── Auto-link: no appointment chosen → attach the bill to this patient's latest ──
+        // treatment that has no bill yet (same service if one was picked), so the
+        // Appointment → Billing → Patient Record chain never breaks. If nothing fits,
+        // the bill is saved unlinked exactly as before.
+        $auto_dr_id = null;
+        if (!$appointment_id) {
+            try {
+                $al_sql = "SELECT dr.id, dr.appointment_id
+                           FROM dental_records dr
+                           WHERE dr.patient_id = ?
+                             AND dr.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+                        . ($service_id ? " AND dr.service_id = ?" : "") . "
+                             AND NOT EXISTS (
+                                 SELECT 1 FROM bills b
+                                 WHERE b.patient_id = dr.patient_id
+                                   AND (b.dental_record_id = dr.id
+                                        OR (dr.appointment_id IS NOT NULL AND b.appointment_id = dr.appointment_id))
+                             )
+                           ORDER BY dr.visit_date DESC, dr.id DESC
+                           LIMIT 1";
+                $al_stmt = $conn->prepare($al_sql);
+                $al_stmt->execute($service_id ? [$patient_id, $service_id] : [$patient_id]);
+                $al_row = $al_stmt->fetch(PDO::FETCH_ASSOC);
+                $al_stmt->closeCursor();
+                if ($al_row) {
+                    $auto_dr_id     = (int)$al_row['id'];
+                    $appointment_id = !empty($al_row['appointment_id']) ? (int)$al_row['appointment_id'] : null;
+                }
+            } catch (Exception $e) {
+                error_log('[BILL AUTO-LINK] ' . $e->getMessage());
+                $auto_dr_id = null;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // ── Duplicate guard: if this appointment already has a bill, go there ──
         // This prevents duplicate bills when the user presses browser back (Alt+Left)
         // after a successful save and the form re-submits.
@@ -185,7 +220,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // ─────────────────────────────────────────────────────
 
                 // ── Link this bill to the dental record (so Pay Balance shows in patient view) ──
-                if ($appointment_id) {
+                if ($auto_dr_id) {
+                    $conn->prepare("UPDATE bills SET dental_record_id = ? WHERE id = ?")
+                         ->execute([$auto_dr_id, $new_id]);
+                } elseif ($appointment_id) {
                     $dr_lnk = $conn->prepare(
                         "SELECT id FROM dental_records WHERE appointment_id = ? AND patient_id = ? ORDER BY id DESC LIMIT 1"
                     );
