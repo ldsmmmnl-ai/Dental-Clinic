@@ -33,6 +33,10 @@ try {
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
 
+    // Railway's MySQL runs on UTC, but PHP runs on Asia/Manila (config.php). Without this line every
+    // NOW()/CURRENT_TIMESTAMP the database writes (audit log times, bills, notifications) is 8 hours behind.
+    $conn->exec("SET time_zone = '+08:00'");
+
 } catch (PDOException $e) {
     error_log('[DB ERROR] ' . $e->getMessage());
     $isApi = str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
@@ -144,6 +148,27 @@ $conn->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['CompatPDOStatement']);
 })($conn);
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── One-time fix: rows saved before the time-zone fix above were written in UTC ──────────────
+// Moves them to Manila time (+8h) exactly once. The marker row in `settings` is inserted FIRST,
+// inside the transaction, so two requests arriving together cannot both shift the data.
+(function (PDO $db) {
+    try {
+        $done = $db->prepare("SELECT 1 FROM settings WHERE setting_key = 'tz_shift_manila_v1' LIMIT 1");
+        $done->execute();
+        if ($done->fetchColumn()) return;
+        $db->beginTransaction();
+        $db->exec("INSERT INTO settings (setting_key, setting_value) VALUES ('tz_shift_manila_v1', 'done')");
+        $db->exec("UPDATE audit_logs    SET created_at = DATE_ADD(created_at, INTERVAL 8 HOUR)");
+        $db->exec("UPDATE notifications SET created_at = DATE_ADD(created_at, INTERVAL 8 HOUR)");
+        $db->exec("UPDATE dental_record_visits SET voided_at = DATE_ADD(voided_at, INTERVAL 8 HOUR) WHERE voided_at IS NOT NULL");
+        $db->exec("UPDATE bills SET created_at = DATE_ADD(created_at, INTERVAL 8 HOUR), updated_at = updated_at");
+        $db->commit();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) $db->rollBack();   // duplicate marker = someone else already did it
+        error_log('[TZ SHIFT] ' . $e->getMessage());
+    }
+})($conn);
+
 // --- Helper functions ---------------------------------------------------------
 
 // Bill status from the amounts: nothing paid = unpaid, fully covered = paid, otherwise partial.
@@ -178,19 +203,30 @@ function parse_tooth_marks($json): array {
     return is_array($d) ? $d : [];
 }
 
+// True for addresses that belong to the hosting network itself (private ranges and the
+// 100.64.0.0/10 block Railway's proxy uses), i.e. not a real visitor.
+function is_internal_ip(string $ip): bool {
+    if ($ip === '127.0.0.1' || $ip === '::1') return true;
+    $n = ip2long($ip);
+    if ($n === false) return false;
+    foreach ([['10.0.0.0', 8], ['172.16.0.0', 12], ['192.168.0.0', 16], ['100.64.0.0', 10]] as [$base, $bits]) {
+        $mask = -1 << (32 - $bits);
+        if (($n & $mask) === (ip2long($base) & $mask)) return true;
+    }
+    return false;
+}
+
 // Return the real client IP, accounting for reverse proxies.
 function get_client_ip(): string {
     $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $xff    = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-    $is_proxy = (
-        $remote === '127.0.0.1' ||
-        str_starts_with($remote, '10.')    ||
-        str_starts_with($remote, '172.')   ||
-        str_starts_with($remote, '192.168.')
-    );
-    if ($is_proxy && !empty($xff)) {
-        $ip = trim(explode(',', $xff)[0]);
-        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    if (is_internal_ip($remote)) {
+        // Behind the proxy: take the first address in the forwarding headers that is not internal.
+        foreach (['HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR'] as $h) {
+            foreach (explode(',', $_SERVER[$h] ?? '') as $ip) {
+                $ip = trim($ip);
+                if (filter_var($ip, FILTER_VALIDATE_IP) && !is_internal_ip($ip)) return $ip;
+            }
+        }
     }
     return $remote;
 }
