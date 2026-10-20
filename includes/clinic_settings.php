@@ -29,6 +29,12 @@ function clinic_settings(PDO $conn): array {
     $email    = trim($rows['clinic_email']    ?? '');
     $logo_val = trim($rows['clinic_logo']     ?? '');
 
+    // If the saved logo file is no longer on disk (e.g. the server was redeployed), behave as
+    // "no logo" so every page falls back to the default icon instead of showing a broken image.
+    if ($logo_val !== '' && !is_file(dirname(__DIR__) . '/' . ltrim($logo_val, '/'))) {
+        $logo_val = '';
+    }
+
     // logo_val is stored as a relative path like "assets/images/logos/my_logo.png"
     $logo_url = '';
     if ($logo_val !== '') {
