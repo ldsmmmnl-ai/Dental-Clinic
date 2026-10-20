@@ -310,7 +310,8 @@ $dr_stmt = $conn->prepare("
            b.id as bill_id, b.amount_due as bill_total,
            b.amount_paid as bill_paid,
            (COALESCE(b.amount_due,0) - COALESCE(b.amount_paid,0)) as bill_balance,
-           b.status as bill_status
+           b.status as bill_status,
+           b.created_at as bill_created_at
     FROM dental_records dr
     LEFT JOIN services s ON dr.service_id = s.id
     LEFT JOIN users u ON dr.recorded_by = u.id
@@ -1013,6 +1014,37 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+                                                    <?php
+                                                    // ── Running ledger ─────────────────────────────────────────────
+                                                    // Money applied to the bill through Return Visit entries is stored on those
+                                                    // entries. Whatever is left of the bill's "amount paid" was collected in
+                                                    // Billing / at the appointment, so it gets its own row (dated when the bill
+                                                    // was created) and every payment shows the balance after it.
+                                                    $__lg_bill = !empty($rec['bill_id']);
+                                                    $__lg_due  = (float)($rec['bill_total'] ?? 0);
+                                                    $__lg_paid = (float)($rec['bill_paid'] ?? 0);
+                                                    $__lg_applied = 0.0;
+                                                    $__lg_after   = [];          // visit-entry id => balance after that payment
+                                                    if ($__lg_bill) {
+                                                        foreach ($visit_entries[$rec['id']] ?? [] as $__x) {
+                                                            if (!empty($__x['voided_at'])) continue;
+                                                            if (!empty($__x['bill_id']) && (int)$__x['bill_id'] !== (int)$rec['bill_id']) continue;
+                                                            $__lg_applied += ($__x['applied_amount'] !== null) ? (float)$__x['applied_amount'] : (float)($__x['fee'] ?? 0);
+                                                        }
+                                                    }
+                                                    $__lg_open = $__lg_bill ? round($__lg_paid - $__lg_applied, 2) : 0.0;
+                                                    if ($__lg_open < 0.009) $__lg_open = 0.0;
+                                                    $__lg_run = $__lg_due - $__lg_open;   // balance after the billing payment
+                                                    if ($__lg_bill) {
+                                                        foreach ($visit_entries[$rec['id']] ?? [] as $__x) {
+                                                            if (!empty($__x['voided_at'])) continue;
+                                                            if (!empty($__x['bill_id']) && (int)$__x['bill_id'] !== (int)$rec['bill_id']) continue;
+                                                            $__lg_run -= ($__x['applied_amount'] !== null) ? (float)$__x['applied_amount'] : (float)($__x['fee'] ?? 0);
+                                                            $__lg_after[(int)$__x['id']] = max(0.0, round($__lg_run, 2));
+                                                        }
+                                                    }
+                                                    $__lg_open_bal = max(0.0, round($__lg_due - $__lg_open, 2));
+                                                    ?>
                                                     <!-- Initial visit row (from the dental record itself) -->
                                                     <?php if (!empty($rec['treatment_done'])): ?>
                                                     <tr style="background:#fafeff;">
@@ -1042,6 +1074,21 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                         </td>
                                                     </tr>
                                                     <?php endif; ?>
+                                                    <?php if ($__lg_open > 0): ?>
+                                                    <!-- Payment collected in Billing / at the appointment -->
+                                                    <tr>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;white-space:nowrap;font-size:0.8rem;vertical-align:top;"><?php echo date('M d, Y', strtotime(!empty($rec['bill_created_at']) ? $rec['bill_created_at'] : $rec['visit_date'])); ?></td>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;font-size:0.82rem;vertical-align:top;">
+                                                            Payment at Billing
+                                                            <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">Edit or cancel it from <a href="../billing/view.php?id=<?php echo (int)$rec['bill_id']; ?>" style="color:var(--primary);">the bill</a></div>
+                                                        </td>
+                                                        <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;vertical-align:top;color:var(--success);">
+                                                            &#8369;<?php echo number_format($__lg_open, 2); ?>
+                                                            <div style="font-size:0.62rem;color:var(--gray-400);font-weight:500;">paid</div>
+                                                            <div style="font-size:0.62rem;color:var(--gray-500);font-weight:500;">bal. &#8369;<?php echo number_format($__lg_open_bal, 2); ?></div>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endif; ?>
                                                     <!-- Return visit rows -->
                                                     <?php foreach ($visit_entries[$rec['id']] ?? [] as $_ve):
                                                         $_voided = !empty($_ve['voided_at']); ?>
@@ -1062,6 +1109,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                         <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;vertical-align:top;color:<?php echo $_voided ? 'var(--gray-400)' : 'var(--success)'; ?>;">
                                                             <span<?php if ($_voided): ?> style="text-decoration:line-through;"<?php endif; ?>><?php echo ($_ve['fee'] > 0) ? '&#8369;'.number_format($_ve['fee'],2) : '&mdash;'; ?></span>
                                                             <?php if (!$_voided && $_ve['fee'] > 0): ?><div style="font-size:0.62rem;color:var(--gray-400);font-weight:500;">paid</div><?php endif; ?>
+                                                            <?php if (!$_voided && $_ve['fee'] > 0 && isset($__lg_after[(int)$_ve['id']])): ?><div style="font-size:0.62rem;color:var(--gray-500);font-weight:500;">bal. &#8369;<?php echo number_format($__lg_after[(int)$_ve['id']], 2); ?></div><?php endif; ?>
                                                             <?php if (!$_voided && $_ve['fee'] > 0): ?>
                                                             <div><button type="button" onclick="toggleVoidRow(<?php echo (int)$_ve['id']; ?>)"
                                                                 title="Wrong amount? Cancel this payment and enter it again"
