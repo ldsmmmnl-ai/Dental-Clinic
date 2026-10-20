@@ -8,6 +8,15 @@ $current_user_role = $current_user_role ?? 'staff';
 
 $initials = strtoupper(substr($current_user_name, 0, 1));
 
+// Clinic logo (uploaded in Settings → Clinic Settings). Empty string = show the default tooth icon.
+$__brand_logo = '';
+try {
+    if (!function_exists('clinic_settings')) require_once __DIR__ . '/clinic_settings.php';
+    if (isset($conn) && $conn instanceof PDO) {
+        $__brand_logo = clinic_settings($conn)['logo_url'] ?? '';
+    }
+} catch (Throwable $e) { $__brand_logo = ''; }
+
 // Returns 'active' CSS class if the current URL contains the given path segment
 if (!function_exists('nav_active')) {
     function nav_active($path) {
@@ -26,9 +35,13 @@ if (!function_exists('nav_active')) {
 <nav id="sidebar" aria-label="Main navigation">
 
     <div class="sidebar-brand">
-    <div class="sidebar-brand-icon" id="brandIconWrap">
-        <img id="brandLogoImg" src="" alt="" style="display:none;width:36px;height:36px;border-radius:50%;object-fit:cover;">
-        <svg id="brandLogoSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="32" height="32" aria-hidden="true">
+    <div class="sidebar-brand-icon" id="brandIconWrap"<?php if ($__brand_logo !== ''): ?> style="background:#fff;padding:3px;"<?php endif; ?>>
+        <?php if ($__brand_logo !== ''): ?>
+        <img id="brandLogoImg" src="<?php echo htmlspecialchars($__brand_logo, ENT_QUOTES, 'UTF-8'); ?>" alt="Clinic logo"
+             style="width:100%;height:100%;object-fit:contain;display:block;border-radius:10px;"
+             onerror="this.style.display='none';var s=document.getElementById('brandLogoSvg');if(s)s.style.display='block';var w=document.getElementById('brandIconWrap');if(w){w.style.background='';w.style.padding='';}">
+        <?php endif; ?>
+        <svg id="brandLogoSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="32" height="32" aria-hidden="true"<?php if ($__brand_logo !== ''): ?> style="display:none;"<?php endif; ?>>
             <!-- Tooth shape: crown top, two roots bottom -->
             <path d="M10,10 C10,5 14,3 18,4 C20,4.5 21,5.5 22,5.5 C23,5.5 24,4.5 26,4 C30,3 34,5 34,10 C34,15 32,19 30,22 C28.5,24.5 28,26 27.5,29 C27,32 26.5,34 25.5,34 C24.5,34 24,31 23.5,28 C23,25 22,24 22,24 C22,24 21,25 20.5,28 C20,31 19.5,34 18.5,34 C17.5,34 17,32 16.5,29 C16,26 15.5,24.5 14,22 C12,19 10,15 10,10 Z"
                 fill="white" opacity="0.95"/>
