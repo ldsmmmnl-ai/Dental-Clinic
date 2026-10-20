@@ -292,6 +292,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_void_visit_entry']))
     header("Location: view.php?id={$pid_pre}");
     exit();
 }
+// ── Handle "Cancel payment" on the "Payment at Billing" row ─────────────────
+// That row is not a stored entry: it is whatever part of the bill's paid amount did not
+// come through a Return Visit. Cancelling it takes exactly that part off the bill (same
+// effect as setting it right from the bill page), and the row then disappears from the log.
+// The amount is recalculated here on the server; nothing is deleted from the database, and
+// the action is kept in the audit log with who did it and why.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_void_billing_payment'])) {
+    validate_csrf();
+    $pid_pre = intval($_GET['id'] ?? 0);
+    $rec_id  = intval($_POST['dental_record_id'] ?? 0);
+    $reason  = mb_substr(trim($_POST['void_reason'] ?? ''), 0, 255);
+
+    if ($reason === '') {
+        $_SESSION['pv_flash_err'] = 'Please type a reason for cancelling the payment.';
+    } else {
+        try {
+            $conn->beginTransaction();
+            $q = $conn->prepare("SELECT id, appointment_id FROM dental_records WHERE id = ? AND patient_id = ? LIMIT 1");
+            $q->execute([$rec_id, $pid_pre]);
+            $drec = $q->fetch(PDO::FETCH_ASSOC);
+            $q->closeCursor();
+
+            $bill = null;
+            if ($drec) {   // same bill lookup the profile uses to build the Visit Log
+                $b = $conn->prepare("
+                    SELECT id, bill_code, amount_due, amount_paid FROM bills
+                    WHERE patient_id = ?
+                      AND (dental_record_id = ?
+                           OR (dental_record_id IS NULL AND appointment_id IS NOT NULL AND appointment_id = ?))
+                    ORDER BY id DESC LIMIT 1 FOR UPDATE
+                ");
+                $b->execute([$pid_pre, $drec['id'], (int)($drec['appointment_id'] ?? 0)]);
+                $bill = $b->fetch(PDO::FETCH_ASSOC);
+                $b->closeCursor();
+            }
+
+            if (!$bill) {
+                $conn->rollBack();
+                $_SESSION['pv_flash_err'] = 'That payment could not be found.';
+            } else {
+                // Part of the paid amount that came through Return Visit entries stays untouched
+                $a = $conn->prepare("
+                    SELECT fee, applied_amount FROM dental_record_visits
+                    WHERE dental_record_id = ? AND voided_at IS NULL AND (bill_id IS NULL OR bill_id = ?)
+                ");
+                $a->execute([$drec['id'], $bill['id']]);
+                $applied = 0.0;
+                foreach ($a->fetchAll(PDO::FETCH_ASSOC) as $__r) {
+                    $applied += ($__r['applied_amount'] !== null) ? (float)$__r['applied_amount'] : (float)($__r['fee'] ?? 0);
+                }
+                $paid     = (float)$bill['amount_paid'];
+                $reversed = round($paid - $applied, 2);
+
+                if ($reversed < 0.01) {
+                    $conn->rollBack();
+                    $_SESSION['pv_flash_err'] = 'There is no billing payment left to cancel — it may have already been cancelled.';
+                } else {
+                    $new_paid = max(0.0, round($paid - $reversed, 2));
+                    $new_stat = bill_status_for((float)$bill['amount_due'], $new_paid);
+                    $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
+                         ->execute([$new_paid, $new_stat, $new_paid, $bill['id']]);
+                    $conn->commit();
+
+                    log_action($conn, $current_user_id, $current_user_name ?? 'System',
+                        'Cancelled Payment', 'billing', $bill['id'],
+                        "Bill: {$bill['bill_code']} | Payment at Billing cancelled from the Visit Log | Taken off bill: ₱" .
+                        number_format($reversed, 2) . " | Paid ₱" . number_format($paid, 2) . " → ₱" . number_format($new_paid, 2) .
+                        " | New status: $new_stat | Reason: $reason");
+                    notify($conn, 'payment', 'Payment Cancelled',
+                        ($current_user_name ?? 'A user') . " cancelled ₱" . number_format($reversed, 2) .
+                        " on bill {$bill['bill_code']}. Reason: $reason",
+                        'modules/billing/view.php?id=' . $bill['id']);
+                    $_SESSION['pv_flash_ok'] = 'Payment cancelled — ₱' . number_format($reversed, 2) . ' was taken off the bill.';
+                }
+            }
+        } catch (Exception $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('[VOID BILLING PAYMENT] ' . $e->getMessage());
+            $_SESSION['pv_flash_err'] = 'Could not cancel the payment. Please try again.';
+        }
+    }
+    header("Location: view.php?id={$pid_pre}");
+    exit();
+}
 // ──────────────────────────────────────────────────────────────────────────
 
 $id = secure_int($_GET['id'] ?? 0);
@@ -1086,6 +1170,28 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                             &#8369;<?php echo number_format($__lg_open, 2); ?>
                                                             <div style="font-size:0.62rem;color:var(--gray-400);font-weight:500;">paid</div>
                                                             <div style="font-size:0.62rem;color:var(--gray-500);font-weight:500;">bal. &#8369;<?php echo number_format($__lg_open_bal, 2); ?></div>
+                                                            <div><button type="button" onclick="toggleVoidRow('bill_<?php echo (int)$rec['id']; ?>')"
+                                                                title="Wrong amount? Cancel this payment and enter it again"
+                                                                style="background:none;border:none;padding:0;margin-top:2px;color:var(--danger);font-size:0.68rem;font-weight:600;cursor:pointer;text-decoration:underline;">Cancel payment</button></div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr id="voidRow_bill_<?php echo (int)$rec['id']; ?>" style="display:none;background:#fff7f7;">
+                                                        <td colspan="3" style="border:1px solid var(--gray-200);padding:10px 12px;">
+                                                            <form method="POST" action="view.php?id=<?php echo $id; ?>"
+                                                                  onsubmit="return confirm('Cancel this &#8369;<?php echo number_format($__lg_open,2); ?> payment? It will be taken off the bill.');">
+                                                                <?php echo csrf_field(); ?>
+                                                                <input type="hidden" name="_void_billing_payment" value="1">
+                                                                <input type="hidden" name="dental_record_id" value="<?php echo (int)$rec['id']; ?>">
+                                                                <div style="font-size:0.78rem;margin-bottom:6px;color:var(--gray-700);">
+                                                                    This takes <strong>&#8369;<?php echo number_format($__lg_open,2); ?></strong> back off the bill and removes this row from the log. The cancellation is recorded in the audit log. Payments entered through Return Visit are not affected.
+                                                                </div>
+                                                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                                                    <input type="text" name="void_reason" required maxlength="255" class="form-control form-control-sm"
+                                                                           placeholder="Reason, e.g. test entry / wrong amount" style="flex:1;min-width:200px;border-radius:6px;font-size:0.82rem;">
+                                                                    <button type="submit" class="btn btn-danger btn-sm" style="font-size:0.78rem;border-radius:6px;font-weight:700;">Cancel payment</button>
+                                                                    <button type="button" onclick="toggleVoidRow('bill_<?php echo (int)$rec['id']; ?>')" class="btn btn-outline-secondary btn-sm" style="font-size:0.78rem;border-radius:6px;">Keep it</button>
+                                                                </div>
+                                                            </form>
                                                         </td>
                                                     </tr>
                                                     <?php endif; ?>
