@@ -544,9 +544,22 @@ if ($view === 'otp_reset') {
 
     <!-- BRAND HEADER -->
     <div class="login-brand">
-        <div class="login-brand-icon">
+        <?php
+        // Clinic logo from Settings → Clinic Settings ('' = keep the default tooth icon)
+        $__login_logo = '';
+        try {
+            if (!function_exists('clinic_settings')) require_once __DIR__ . '/includes/clinic_settings.php';
+            $__login_logo = clinic_settings($conn)['logo_url'] ?? '';
+        } catch (Throwable $e) { $__login_logo = ''; }
+        ?>
+        <div class="login-brand-icon" id="loginBrandIcon"<?php if ($__login_logo !== ''): ?> style="background:#fff;width:96px;height:96px;padding:6px;"<?php endif; ?>>
+            <?php if ($__login_logo !== ''): ?>
+            <img src="<?php echo htmlspecialchars($__login_logo, ENT_QUOTES, 'UTF-8'); ?>" alt="Clinic logo"
+                 style="width:100%;height:100%;object-fit:contain;display:block;border-radius:14px;"
+                 onerror="this.style.display='none';var s=document.getElementById('loginToothSvg');if(s)s.style.display='block';var w=document.getElementById('loginBrandIcon');if(w){w.style.background='';w.style.width='';w.style.height='';w.style.padding='';}">
+            <?php endif; ?>
             <!-- Clean tooth SVG -->
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg id="loginToothSvg"<?php if ($__login_logo !== ''): ?> style="display:none;"<?php endif; ?> viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22 8C17 8 10 12 10 22C10 28 11 33 13 38C15 43 17 52 20 54C21.5 55 23 54 24 52C25.5 49 26 44 28 42C29 41 30 41 32 41C34 41 35 41 36 42C38 44 38.5 49 40 52C41 54 42.5 55 44 54C47 52 49 43 51 38C53 33 54 28 54 22C54 12 47 8 42 8C38 8 35 10 32 11C29 10 26 8 22 8Z" fill="white" opacity="0.95"/>
                 <path d="M28 42C28 38 29.5 35 32 35C34.5 35 36 38 36 42" stroke="rgba(37,99,235,0.3)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
             </svg>
