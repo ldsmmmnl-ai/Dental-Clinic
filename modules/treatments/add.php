@@ -341,10 +341,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label">Visit Date</label>
                             <input type="date" name="visit_date" class="form-control" value="<?php echo htmlspecialchars($pre_appointment ? $pre_appointment['appointment_date'] : date('Y-m-d')); ?>">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Fee Collected <span style="color:var(--gray-400);font-size:0.78rem;">(this visit — ₱)</span></label>
-                            <input type="number" name="fee_charged" class="form-control" min="0" step="0.01" placeholder="0.00" value="">
-                        </div>
                         <div class="col-md-12">
                             <label class="form-label">Chief Complaint <span style="color:var(--gray-400);font-size:0.8rem;">(patient's own words)</span></label>
                             <input type="text" name="chief_complaint" class="form-control" placeholder="e.g. Masakit ang ngipin ko sa kanan — what the patient says when they walk in">
