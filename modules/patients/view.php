@@ -158,6 +158,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_add_visit_entry'])) 
     header("Location: view.php?id={$pid_pre}");
     exit();
 }
+// ── Handle "Link bill" — attach an existing unlinked bill to a dental record ─
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_link_bill'])) {
+    validate_csrf();
+    $pid_pre = intval($_GET['id'] ?? 0);
+    $lb_bill = intval($_POST['bill_id'] ?? 0);
+    $lb_dr   = intval($_POST['dental_record_id'] ?? 0);
+    try {
+        $q = $conn->prepare("SELECT id, appointment_id FROM dental_records WHERE id = ? AND patient_id = ? LIMIT 1");
+        $q->execute([$lb_dr, $pid_pre]);
+        $lb_rec = $q->fetch(PDO::FETCH_ASSOC);
+        $q->closeCursor();
+
+        $q = $conn->prepare("SELECT id, bill_code FROM bills WHERE id = ? AND patient_id = ? AND dental_record_id IS NULL AND appointment_id IS NULL LIMIT 1");
+        $q->execute([$lb_bill, $pid_pre]);
+        $lb_b = $q->fetch(PDO::FETCH_ASSOC);
+        $q->closeCursor();
+
+        $lb_appt = (int)($lb_rec['appointment_id'] ?? 0);
+        $q = $conn->prepare("SELECT id FROM bills WHERE patient_id = ? AND (dental_record_id = ? OR (? > 0 AND appointment_id = ?)) LIMIT 1");
+        $q->execute([$pid_pre, $lb_dr, $lb_appt, $lb_appt]);
+        $lb_has = $q->fetchColumn();
+        $q->closeCursor();
+
+        if (!$lb_rec || !$lb_b) {
+            $_SESSION['pv_flash_err'] = 'That bill could not be linked.';
+        } elseif ($lb_has) {
+            $_SESSION['pv_flash_err'] = 'That record already has a bill.';
+        } else {
+            $conn->prepare("UPDATE bills SET dental_record_id = ?, appointment_id = ? WHERE id = ?")
+                 ->execute([$lb_dr, $lb_appt > 0 ? $lb_appt : null, $lb_bill]);
+            log_action($conn, $current_user_id, $_SESSION['full_name'] ?? 'System',
+                'Linked Bill', 'billing', $lb_bill,
+                "Bill {$lb_b['bill_code']} linked to dental record #$lb_dr");
+            $_SESSION['pv_flash_ok'] = 'Bill ' . $lb_b['bill_code'] . ' is now linked to this treatment record.';
+        }
+    } catch (Exception $e) {
+        error_log('[LINK BILL] ' . $e->getMessage());
+        $_SESSION['pv_flash_err'] = 'Could not link the bill. Please try again.';
+    }
+    header("Location: view.php?id={$pid_pre}");
+    exit();
+}
 // ── Handle "Cancel payment" on a return-visit entry ────────────────────────
 // Takes the money back off the bill (so a mistyped amount can be redone) and keeps
 // the entry in the log, crossed out, with who cancelled it and why.
@@ -262,7 +304,7 @@ $pt_stmt->closeCursor();
 if (!$patient) { header('Location: list.php'); exit(); }
 
 $dr_stmt = $conn->prepare("
-    SELECT dr.*, s.service_name, CONCAT(u.full_name) as recorded_by_name,
+    SELECT dr.*, s.service_name, s.price AS service_price, CONCAT(u.full_name) as recorded_by_name,
            a.appointment_code as linked_appt_code,
            a.appointment_date as linked_appt_date,
            b.id as bill_id, b.amount_due as bill_total,
@@ -288,6 +330,18 @@ $dr_stmt = $conn->prepare("
 $dr_stmt->execute([$id]);
 $dental_records = $dr_stmt->fetchAll(PDO::FETCH_ASSOC);
 $dr_stmt->closeCursor();
+
+// Bills of this patient that are not tied to any appointment or record (offered for linking)
+$unlinked_bills = [];
+try {
+    $ul = $conn->prepare("SELECT id, bill_code, service_id, amount_due FROM bills
+                          WHERE patient_id = ? AND dental_record_id IS NULL AND appointment_id IS NULL
+                          ORDER BY id DESC");
+    $ul->execute([$id]);
+    $unlinked_bills = $ul->fetchAll(PDO::FETCH_ASSOC);
+    $ul->closeCursor();
+} catch (Exception $e) { error_log('[UNLINKED BILLS] ' . $e->getMessage()); }
+$ul_used = [];
 
 // Fetch all return-visit entries per dental record for this patient
 $ve_stmt = $conn->prepare("
@@ -752,7 +806,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                     </select>
                                 </div>
                                 <div class="col-sm-3 col-6">
-                                    <label class="inlbl"><i class="bi bi-cash-coin me-1" style="color:var(--primary);"></i>Fee &#x20B1;</label>
+                                    <label class="inlbl"><i class="bi bi-cash-coin me-1" style="color:var(--primary);"></i>Treatment Price &#x20B1;</label>
                                     <div style="position:relative;">
                                         <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:0.8rem;font-weight:600;">&#x20B1;</span>
                                         <input type="number" name="fee_charged" class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" style="padding-left:22px;border-radius:7px;font-weight:700;">
@@ -873,7 +927,8 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                         <span class="rec-svc"><?php echo e($rec['service_name'] ?? 'General'); ?></span>
                                         <?php
                                             // Show fee from bill or from record itself
-                                            $disp_fee = !empty($rec['bill_total']) ? $rec['bill_total'] : ($rec['fee_charged'] ?? 0);
+                                            $disp_fee = !empty($rec['bill_total']) ? (float)$rec['bill_total']
+                                                : (((float)($rec['fee_charged'] ?? 0) > 0) ? (float)$rec['fee_charged'] : (float)($rec['service_price'] ?? 0));
                                             $disp_bal = $rec['bill_balance'] ?? 0;
                                         ?>
                                         <?php if ($disp_fee > 0): ?>
@@ -974,11 +1029,16 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                             <?php
                                                             // Prefer dental_records.fee_charged; fall back to the linked
                                                             // bill's amount_due for appointment-created records.
-                                                            $_if = ((float)($rec['fee_charged'] ?? 0) > 0)
-                                                                ? (float)$rec['fee_charged']
-                                                                : ((float)($rec['bill_total'] ?? 0) > 0 ? (float)$rec['bill_total'] : 0);
+                                                            // Price of the treatment: the bill's amount first, then the
+                                                            // fee typed on the record, then the service's catalog price.
+                                                            $_if = ((float)($rec['bill_total'] ?? 0) > 0)
+                                                                ? (float)$rec['bill_total']
+                                                                : (((float)($rec['fee_charged'] ?? 0) > 0)
+                                                                    ? (float)$rec['fee_charged']
+                                                                    : (float)($rec['service_price'] ?? 0));
                                                             echo $_if > 0 ? '&#8369;'.number_format($_if, 2) : '&mdash;';
                                                             ?>
+                                                            <?php if ($_if > 0): ?><div style="font-size:0.62rem;color:var(--gray-400);font-weight:500;">price</div><?php endif; ?>
                                                         </td>
                                                     </tr>
                                                     <?php endif; ?>
@@ -1001,6 +1061,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                         </td>
                                                         <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;vertical-align:top;color:<?php echo $_voided ? 'var(--gray-400)' : 'var(--success)'; ?>;">
                                                             <span<?php if ($_voided): ?> style="text-decoration:line-through;"<?php endif; ?>><?php echo ($_ve['fee'] > 0) ? '&#8369;'.number_format($_ve['fee'],2) : '&mdash;'; ?></span>
+                                                            <?php if (!$_voided && $_ve['fee'] > 0): ?><div style="font-size:0.62rem;color:var(--gray-400);font-weight:500;">paid</div><?php endif; ?>
                                                             <?php if (!$_voided && $_ve['fee'] > 0): ?>
                                                             <div><button type="button" onclick="toggleVoidRow(<?php echo (int)$_ve['id']; ?>)"
                                                                 title="Wrong amount? Cancel this payment and enter it again"
@@ -1030,6 +1091,55 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                     </tr>
                                                     <?php endif; ?>
                                                     <?php endforeach; ?>
+
+                                                    <?php if (!empty($rec['bill_id'])):
+                                                        $__due  = (float)$rec['bill_total'];
+                                                        $__paid = (float)$rec['bill_paid'];
+                                                        $__bal  = max(0.0, round($__due - $__paid, 2));
+                                                    ?>
+                                                    <!-- Payment summary (always matches the bill in Billing) -->
+                                                    <tr style="background:#f0fdf4;">
+                                                        <td colspan="2" style="border:1px solid var(--gray-200);padding:5px 8px;font-size:0.8rem;font-weight:700;text-align:right;">Total paid so far</td>
+                                                        <td style="border:1px solid var(--gray-200);padding:5px 8px;text-align:right;font-weight:700;color:var(--success);">&#8369;<?php echo number_format($__paid, 2); ?></td>
+                                                    </tr>
+                                                    <tr style="background:<?php echo $__bal > 0.009 ? '#fef2f2' : '#f0fdf4'; ?>;">
+                                                        <td colspan="2" style="border:1px solid var(--gray-200);padding:5px 8px;font-size:0.8rem;font-weight:700;text-align:right;">
+                                                            Balance remaining
+                                                            <?php if ($__bal > 0.009): ?>
+                                                            <a href="../billing/pay.php?id=<?php echo (int)$rec['bill_id']; ?>&from_patient=<?php echo $id; ?>" style="margin-left:8px;font-size:0.7rem;font-weight:700;color:#fff;background:var(--primary);padding:2px 9px;border-radius:5px;text-decoration:none;">Pay Balance</a>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td style="border:1px solid var(--gray-200);padding:5px 8px;text-align:right;font-weight:800;color:<?php echo $__bal > 0.009 ? 'var(--danger)' : 'var(--success)'; ?>;">
+                                                            <?php echo $__bal > 0.009 ? '&#8369;'.number_format($__bal, 2) : 'Paid in full &#10003;'; ?>
+                                                        </td>
+                                                    </tr>
+                                                    <?php else: ?>
+                                                    <?php
+                                                    // Is there an existing bill for the same service that was saved without a link?
+                                                    $__cand = null;
+                                                    foreach ($unlinked_bills as $__ub) {
+                                                        if (isset($ul_used[$__ub['id']])) continue;
+                                                        if ((int)$__ub['service_id'] === (int)($rec['service_id'] ?? 0)) { $__cand = $__ub; $ul_used[$__ub['id']] = true; break; }
+                                                    }
+                                                    ?>
+                                                    <tr>
+                                                        <td colspan="3" style="border:1px solid var(--gray-200);padding:6px 8px;font-size:0.76rem;color:var(--gray-500);text-align:center;">
+                                                        <?php if ($__cand): ?>
+                                                            <form method="POST" action="view.php?id=<?php echo $id; ?>" style="display:inline;">
+                                                                <?php echo csrf_field(); ?>
+                                                                <input type="hidden" name="_link_bill" value="1">
+                                                                <input type="hidden" name="bill_id" value="<?php echo (int)$__cand['id']; ?>">
+                                                                <input type="hidden" name="dental_record_id" value="<?php echo (int)$rec['id']; ?>">
+                                                                Bill <strong><?php echo e($__cand['bill_code']); ?></strong> (&#8369;<?php echo number_format((float)$__cand['amount_due'], 2); ?>) is not linked to this record.
+                                                                <button type="submit" style="margin-left:6px;background:var(--primary);border:none;color:#fff;font-size:0.72rem;font-weight:700;padding:3px 11px;border-radius:5px;cursor:pointer;">Link it</button>
+                                                            </form>
+                                                        <?php else: ?>
+                                                            No bill yet &mdash;
+                                                            <a href="../billing/create.php?patient_id=<?php echo $id; ?><?php echo !empty($rec['appointment_id']) ? '&appointment_id='.(int)$rec['appointment_id'].'&from_treatment=1' : ''; ?>" style="font-weight:700;">Create Bill</a>
+                                                        <?php endif; ?>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endif; ?>
                                                 </tbody>
                                             </table>
 
