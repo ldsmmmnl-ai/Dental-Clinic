@@ -71,7 +71,7 @@ $back_rows[] = [
 
 // Additional return-visit entries for this record
 $stmt2 = $conn->prepare("
-    SELECT visit_date, treatment_rendered AS treatment, fee, NULL AS service_name
+    SELECT visit_date, treatment_rendered AS treatment, fee, bill_id, applied_amount, NULL AS service_name
     FROM dental_record_visits
     WHERE dental_record_id = ? AND voided_at IS NULL
     ORDER BY visit_date ASC, id ASC
@@ -87,7 +87,7 @@ foreach ($stmt2->fetchAll(PDO::FETCH_ASSOC) as $_ve) {
 // Totals: "Charged" is what the treatment costs; return-visit fees are payments toward it.
 // If a bill is linked, its amounts are the truth (they also reflect cancelled payments).
 $tb = $conn->prepare("
-    SELECT amount_due, amount_paid FROM bills
+    SELECT id, amount_due, amount_paid, created_at FROM bills
     WHERE patient_id = ?
       AND (dental_record_id = ? OR (? > 0 AND appointment_id = ? AND dental_record_id IS NULL))
     ORDER BY id DESC LIMIT 1
@@ -104,6 +104,37 @@ if ($tot_bill) {
     $total_paid    = $visit_fee_sum;
 }
 $total_balance = max(0.0, round($total_charged - $total_paid, 2));
+
+// Running ledger: whatever part of the bill's "paid" amount did not come through a Return Visit
+// entry was collected in Billing / at the appointment, so it gets its own row (right after the
+// initial treatment) and every payment row shows the balance left after it.
+if ($tot_bill) {
+    $applied_sum = 0.0;
+    foreach ($back_rows as $_k => $_r) {
+        if (empty($_r['is_payment'])) continue;
+        if (!empty($_r['bill_id']) && (int)$_r['bill_id'] !== (int)$tot_bill['id']) { $back_rows[$_k]['applied'] = 0.0; continue; }
+        $_ap = ($_r['applied_amount'] !== null) ? (float)$_r['applied_amount'] : (float)($_r['fee'] ?? 0);
+        $back_rows[$_k]['applied'] = $_ap;
+        $applied_sum += $_ap;
+    }
+    $open_pay = round($total_paid - $applied_sum, 2);
+    if ($open_pay > 0.009) {
+        array_splice($back_rows, 1, 0, [[
+            'visit_date'   => !empty($tot_bill['created_at']) ? substr($tot_bill['created_at'], 0, 10) : $record['visit_date'],
+            'service_name' => null,
+            'treatment'    => 'Payment at Billing',
+            'fee'          => $open_pay,
+            'is_payment'   => true,
+            'applied'      => $open_pay,
+        ]]);
+    }
+    $run = $total_charged;
+    foreach ($back_rows as $_k => $_r) {
+        if (empty($_r['is_payment']) || empty($_r['applied'])) continue;
+        $run -= (float)$_r['applied'];
+        $back_rows[$_k]['balance_after'] = max(0.0, round($run, 2));
+    }
+}
 
 $dob     = $record['date_of_birth'];
 $age     = $dob ? date_diff(date_create($dob), date_create('today'))->y : null;
@@ -166,7 +197,7 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
         box-shadow:none;
         page-break-after:always;
     }
-    .page:last-child{page-break-after:auto;}
+    .page:last-of-type{page-break-after:auto;break-after:auto;}/* last-child never matched: the autoprint <script> comes after it, which printed an extra blank sheet */
 }
 
 /* ── PAGE 1 STYLES ── */
@@ -434,7 +465,7 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
             <td class="col-fee">
                 <?php if (!empty($r['fee']) && $r['fee'] > 0): ?>
                 <span class="visit-fee">₱<?= number_format($r['fee'], 2) ?></span>
-                <?php if (!empty($r['is_payment'])): ?><br><span style="font-size:7pt;color:#444;">paid</span><?php endif; ?>
+                <?php if (!empty($r['is_payment'])): ?><br><span style="font-size:7pt;color:#444;">paid<?= isset($r['balance_after']) ? ' &middot; bal. ₱' . number_format($r['balance_after'], 2) : '' ?></span><?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>
