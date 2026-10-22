@@ -147,7 +147,7 @@ if ($view === 'login_otp') {
     // Show OTP in demo mode (no keys configured)
     if ($view === 'login_otp' && !empty($_SESSION['login_2fa_user_id'])) {
         $no_keys = empty($_ENV['SEMAPHORE_API_KEY']) && empty($_ENV['RESEND_API_KEY']);
-        if ($no_keys) {
+        if (APP_DEBUG && $no_keys) {
             $uid = (int)$_SESSION['login_2fa_user_id'];
             $otp_row = $conn->prepare("SELECT otp_code FROM users WHERE id = ? LIMIT 1");
             $otp_row->execute([$uid]);
@@ -221,7 +221,9 @@ if ($view === 'otp_reset') {
     // Show OTP on-screen only if email delivery failed (send_otp_email returned false).
     // When SMTP is working, $otp_delivered = true and nothing is shown here.
     $otp_delivered = $_SESSION['otp_delivered'] ?? false;
-    if (!$otp_delivered && !empty($otp_user['otp_code'])) {
+    // SECURITY: only ever show the code on screen when APP_DEBUG=true (local testing).
+    // In production this would let anyone who knows a username take over the account.
+    if (APP_DEBUG && !$otp_delivered && !empty($otp_user['otp_code'])) {
         $demo_otp = $otp_user['otp_code'];
     }
 
@@ -742,6 +744,10 @@ if ($view === 'otp_reset') {
     <?php else: ?>
     <!-- LOGIN VIEW -->
     <div class="form-heading">Sign in to your account</div>
+    <div style="font-size:0.72rem;color:#64748b;background:#f1f5f9;border-radius:8px;padding:8px 12px;margin-bottom:14px;line-height:1.5;">
+        <i class="bi bi-shield-lock-fill"></i> <strong>Authorized staff only.</strong>
+        Patient information in this system is confidential and must not be shared or disclosed to anyone.
+    </div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
