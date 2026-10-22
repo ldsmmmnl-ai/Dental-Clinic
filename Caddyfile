@@ -6,6 +6,15 @@
 :8080 {
     root * /app
 
+    # CONFIDENTIALITY: never serve internal files (config, source libs, logs, SQL, docs, hidden files).
+    # This block must stay FIRST so it wins over the static-file handlers below.
+    @private {
+        path /.* /vendor/* /includes/* /logs/* /database/* /docs/* /CHAPTER* /composer.* /README.md /Dockerfile /Caddyfile *.sql *.log *.md *.lock *.env
+    }
+    handle @private {
+        respond 403
+    }
+
     # Compress everything — zstd first (faster), gzip as fallback
     encode {
         zstd
