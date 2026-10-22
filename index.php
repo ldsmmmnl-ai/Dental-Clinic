@@ -22,7 +22,7 @@ if (isset($_SESSION['user_id'])) {
     header('Location: dashboard.php');
     exit();
 }
- 
+
 require_once 'includes/db.php';
 
 if (!function_exists('validate_password')) {
