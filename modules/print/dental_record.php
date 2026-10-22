@@ -242,8 +242,18 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
     border:1.5px solid #000;
     padding:5px 8px;
     margin:7px 0;
-    display:flex;justify-content:center;
+    display:flex;flex-direction:column;align-items:center;
 }
+/* Compact legend under the tooth chart (kept small to save space) */
+.chart-legend{
+    width:100%;margin-top:4px;padding-top:3px;
+    border-top:1px solid #999;
+    font-size:6.5pt;line-height:1.35;text-align:center;color:#000;
+}
+.chart-legend b{font-weight:bold;}
+.chart-legend .lg-title{margin-right:3px;}
+.chart-legend .lg-item{white-space:nowrap;}
+.chart-legend .lg-item + .lg-item::before{content:" \00B7  ";}
 
 /* Text area fields (complaint, history, dx, tx) */
 .text-field{
@@ -376,6 +386,20 @@ body{font-family:'Times New Roman',Times,serif;font-size:10.5pt;color:#000;backg
         $tc_mode   = 'display';
         include dirname(__FILE__) . '/../../includes/tooth_chart_grid.php';
         ?>
+        <div class="chart-legend">
+            <b class="lg-title">Legends:</b>
+            <span class="lg-item"><b>&#10003;</b> Sound tooth</span>
+            <span class="lg-item"><b>0</b> Missing / extracted tooth</span>
+            <span class="lg-item"><b>X</b> Indicated for extraction</span>
+            <span class="lg-item"><b>F</b> Filled</span>
+            <span class="lg-item"><b>Am</b> Amalgam filling</span>
+            <span class="lg-item"><b>Co</b> Composite filling</span>
+            <span class="lg-item"><b>Ec</b> Extensive caries</span>
+            <span class="lg-item"><b>Im</b> Impacted tooth</span>
+            <span class="lg-item"><b>Pe</b> Partially erupted tooth</span>
+            <span class="lg-item"><b>Jc</b> Jacket crown</span>
+            <span class="lg-item"><b>Br</b> Bridge</span>
+        </div>
     </div>
 
     <!-- Chief Complaint -->
