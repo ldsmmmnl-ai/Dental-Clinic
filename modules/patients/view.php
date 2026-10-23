@@ -139,9 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_add_visit_entry'])) 
                             (float)$main_bill['amount_due']
                         );
                         $new_status = $new_paid >= (float)$main_bill['amount_due'] ? 'paid' : 'partial';
+                        ms_reconcile_payments($conn, (int)$main_bill['id']);   // keep payment history in step
                         $conn->prepare(
                             "UPDATE bills SET amount_paid = ?, payment_method = ?, status = ? WHERE id = ?"
                         )->execute([$new_paid, $pm_db, $new_status, $main_bill['id']]);
+                        ms_log_payment($conn, (int)$main_bill['id'], round($new_paid - (float)$main_bill['amount_paid'], 2),
+                                       $pm_db, null, 'Return visit payment', (int)$current_user_id, $visit_d);
                         // Remember which bill + how much was applied so the payment can be cancelled later
                         $conn->prepare("UPDATE dental_record_visits SET bill_id = ?, applied_amount = ? WHERE id = ?")
                              ->execute([$main_bill['id'], round($new_paid - (float)$main_bill['amount_paid'], 2), $new_visit_id]);
@@ -262,8 +265,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_void_visit_entry']))
                     $reversed = max(0.0, min($reversed, $paid));
                     $new_paid = max(0.0, round($paid - $reversed, 2));
                     $new_stat = bill_status_for((float)$bill['amount_due'], $new_paid);
+                    ms_reconcile_payments($conn, (int)$bill['id']);
                     $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
                          ->execute([$new_paid, $new_stat, $new_paid, $bill['id']]);
+                    ms_log_payment($conn, (int)$bill['id'], -$reversed, null, null, 'Cancelled: ' . $reason, (int)$current_user_id);
                 }
                 $conn->prepare("UPDATE dental_record_visits SET voided_at = NOW(), voided_by = ?, void_reason = ? WHERE id = ?")
                      ->execute([$current_user_id, $reason, $ve_id]);
@@ -351,8 +356,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_void_billing_payment
                 } else {
                     $new_paid = max(0.0, round($paid - $reversed, 2));
                     $new_stat = bill_status_for((float)$bill['amount_due'], $new_paid);
+                    ms_reconcile_payments($conn, (int)$bill['id']);
                     $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
                          ->execute([$new_paid, $new_stat, $new_paid, $bill['id']]);
+                    ms_log_payment($conn, (int)$bill['id'], -$reversed, null, null, 'Cancelled: ' . $reason, (int)$current_user_id);
                     $conn->commit();
 
                     log_action($conn, $current_user_id, $current_user_name ?? 'System',
@@ -462,7 +469,7 @@ $linkable_appts = $la_stmt->fetchAll(PDO::FETCH_ASSOC);
 $la_stmt->closeCursor();
 
 $py_stmt = $conn->prepare("
-    SELECT b.*, s.service_name,
+    SELECT b.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name,
            b.amount_paid, b.amount_due, b.status as payment_status,
            b.payment_method, b.created_at
     FROM bills b

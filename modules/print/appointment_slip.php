@@ -12,7 +12,7 @@ if (!$id) { header('Location: ../appointments/list.php'); exit(); }
 $appt_stmt = $conn->prepare("
     SELECT a.*, CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code, p.phone, p.address,
-           s.service_name, s.price,
+           COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.price,
            u.full_name as staff_name
     FROM appointments a
     LEFT JOIN patients p ON a.patient_id = p.id
@@ -110,10 +110,6 @@ if (!$appt) { header('Location: ../appointments/list.php'); exit(); }
             <div class="info-item">
                 <div class="info-label">Service</div>
                 <div class="info-value"><?php echo e($appt['service_name'] ?? '—'); ?></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Estimated Fee</div>
-                <div class="info-value">₱<?php echo number_format($appt['price'] ?? 0, 2); ?></div>
             </div>
             <div class="info-item cols-1">
                 <div class="info-label">Notes / Complaint</div>

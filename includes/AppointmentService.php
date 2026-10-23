@@ -70,7 +70,7 @@ class AppointmentService
             SELECT
                 a.*,
                 CONCAT(p.first_name, ' ', p.last_name) AS patient_name,
-                s.service_name,
+                COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name,
                 d.full_name                            AS doctor_name,
                 d.id                                   AS doctor_id,
                 b.id                                   AS bill_id,

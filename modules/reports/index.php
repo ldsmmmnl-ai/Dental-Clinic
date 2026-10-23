@@ -6,6 +6,9 @@ require_once '../../includes/db.php';
 require_once '../../includes/auth.php';
 require_admin();
 
+require_once '../../includes/clinic_settings.php';
+$_cs = clinic_settings($conn);
+
 $page_title = 'Reports';
 
 $month       = $_GET['month'] ?? date('Y-m');
@@ -36,15 +39,8 @@ $monthly_appts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt->closeCursor();
 $stmt = null;
 
-$stmt = $conn->prepare("
-    SELECT COALESCE(SUM(amount_paid),0) as total
-    FROM bills
-    WHERE DATE(created_at) BETWEEN ? AND ?
-");
-$stmt->execute([$month_start, $month_end]);
-$monthly_revenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-$stmt->closeCursor();
-$stmt = null;
+// Revenue = sum of the Paid column below, so the total always matches the table
+$monthly_revenue = array_sum(array_map(fn($a) => (float)($a['amount_paid'] ?? 0), $monthly_appts));
 
 $stmt = $conn->prepare("
     SELECT COUNT(DISTINCT patient_id) as c FROM appointments
@@ -62,6 +58,14 @@ $stmt = null;
 <div class="main-content">
     <?php include '../../includes/header.php'; ?>
     <div class="page-content">
+
+        <!-- Print-only header -->
+        <div class="print-header text-center mb-3">
+            <h4 class="mb-0"><?php echo htmlspecialchars($_cs['name']); ?></h4>
+            <?php if (!empty($_cs['address'])): ?><small><?php echo htmlspecialchars($_cs['address']); ?></small><br><?php endif; ?>
+            <strong>Monthly Report &mdash; <?php echo date('F Y', strtotime($month_start)); ?></strong><br>
+            <small>Generated <?php echo date('M d, Y h:i A'); ?> by <?php echo htmlspecialchars($current_user_name); ?></small>
+        </div>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5>Reports</h5>
@@ -88,7 +92,7 @@ $stmt = null;
 
         <!-- Summary -->
         <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="text-muted">Total Revenue</h6>
@@ -96,11 +100,19 @@ $stmt = null;
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="card text-center">
                     <div class="card-body">
                         <h6 class="text-muted">Completed</h6>
                         <h3><?php echo count(array_filter($monthly_appts, fn($a) => $a['status'] === 'completed')); ?></h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Patients Seen</h6>
+                        <h3><?php echo (int)$total_patients_month; ?></h3>
                     </div>
                 </div>
             </div>
@@ -150,20 +162,18 @@ $stmt = null;
 
     <!-- PDF export: uses browser's built-in print-to-PDF (no internet needed) -->
     <style>
+    .print-header { display: none; }
     @media print {
         .sidebar, #sidebar, .sidebar-backdrop, .main-header, .page-header-bar,
         form, .d-flex.justify-content-between, .row.g-2.mb-4,
-        button, .btn { display: none !important; }
+        button, .btn, #phone-nav { display: none !important; }
         body, .main-content, .page-content { margin: 0 !important; padding: 0 !important; }
+        .print-header { display: block !important; }
         .card { border: 1px solid #ccc !important; box-shadow: none !important; }
         table { font-size: 11px; }
+        td, th { white-space: nowrap; }
     }
     </style>
-    <script>
-    function downloadReportPDF() {
-        window.print();
-    }
-    </script>
 </div>
 <?php include '../../includes/footer.php'; ?>
 </body>

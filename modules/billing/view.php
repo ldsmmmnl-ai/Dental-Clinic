@@ -13,7 +13,7 @@ $bv_stmt = $conn->prepare("
     SELECT b.*,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code, p.phone, p.address, p.email,
-           s.service_name, s.duration_minutes,
+           COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name, s.duration_minutes,
            a.appointment_code, a.appointment_date, a.appointment_time,
            u.full_name as created_by_name
     FROM bills b
@@ -46,10 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_correct_payment'])) 
         $fix_error = 'That is the same amount already recorded — nothing to change.';
     } else {
         $new_status = bill_status_for($due, $new_paid);
+        ms_reconcile_payments($conn, $id);   // earlier payments must be in the history before this change
         $conn->prepare("UPDATE bills SET amount_paid = ?, status = ?, payment_ref = IF(? <= 0, NULL, payment_ref) WHERE id = ?")
              ->execute([$new_paid, $new_status, $new_paid, $id]);
         $uid  = $_SESSION['user_id'] ?? 0;
         $uname = $_SESSION['full_name'] ?? 'System';
+        // Payment history: show the correction as its own line (negative = taken off, positive = added)
+        ms_log_payment($conn, $id, round($new_paid - $old_paid, 2), $bill['payment_method'] ?? null, null,
+                       'Correction: ' . $reason, (int)$uid);
         log_action($conn, $uid, $uname, 'Corrected Payment', 'billing', $id,
             "Bill: {$bill['bill_code']} | Paid changed ₱" . number_format($old_paid, 2) . " → ₱" . number_format($new_paid, 2) .
             " | New status: $new_status | Reason: $reason");
@@ -63,6 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_correct_payment'])) 
 }
 
 $balance   = $bill['amount_due'] - $bill['amount_paid'];
+$bill_svcs = ms_get($conn, 'bill_services', 'bill_id', $id, (int)($bill['service_id'] ?? 0) ?: null);
+
+// ── Payment history (one row per payment) ───────────────────────────────────
+$pay_history = [];
+ms_reconcile_payments($conn, $id);   // bills paid before payment history existed get one "earlier payments" line
+try {
+    $ph = $conn->prepare("SELECT * FROM bill_payments WHERE bill_id = ? ORDER BY paid_at ASC, id ASC");
+    $ph->execute([$id]);
+    $pay_history = $ph->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { /* table not created yet — run database/migration_payment_history.sql */ }
 $corrected = isset($_GET['corrected']);
 $created   = isset($_GET['created']);
 $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
@@ -214,10 +228,15 @@ $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
                             <span style="font-weight:600;"><?php echo e($bill['payment_ref']); ?></span>
                         </div>
                         <?php endif; ?>
-                        <?php if ($bill['service_name']): ?>
-                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:0.875rem;">
-                            <span style="color:var(--gray-500);">Service</span>
-                            <span style="font-weight:600;"><?php echo e($bill['service_name']); ?></span>
+                        <?php if ($bill_svcs): ?>
+                        <div style="padding:8px 0;border-bottom:1px solid var(--gray-100);font-size:0.875rem;">
+                            <div style="color:var(--gray-500);margin-bottom:6px;"><?php echo count($bill_svcs) > 1 ? 'Services' : 'Service'; ?></div>
+                            <?php foreach ($bill_svcs as $__sv): ?>
+                            <div style="display:flex;justify-content:space-between;padding:2px 0;">
+                                <span style="font-weight:600;"><?php echo e($__sv['service_name']); ?></span>
+                                
+                            </div>
+                            <?php endforeach; ?>
                         </div>
                         <?php endif; ?>
                         <?php if ($bill['notes']): ?>
@@ -226,6 +245,64 @@ $flow_done = isset($_GET['flow']) && $_GET['flow'] === 'done';
                             <div style="color:var(--gray-700);"><?php echo e($bill['notes']); ?></div>
                         </div>
                         <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Payment history -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-clock-history me-2" style="color:var(--primary);"></i>Payment History
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div style="overflow-x:auto;">
+                        <table class="table mb-0" style="font-size:0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Ref. No.</th>
+                                    <th style="text-align:right;">Amount</th>
+                                    <th style="text-align:right;">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background:var(--gray-50);">
+                                    <td colspan="3"><strong>Total Bill</strong></td>
+                                    <td style="text-align:right;"></td>
+                                    <td style="text-align:right;"><strong>₱<?php echo number_format($bill['amount_due'],2); ?></strong></td>
+                                </tr>
+                                <?php
+                                $run_bal = (float)$bill['amount_due'];
+                                foreach ($pay_history as $ph_row):
+                                    $ph_amt  = (float)$ph_row['amount'];
+                                    $run_bal = round($run_bal - $ph_amt, 2);
+                                ?>
+                                <tr>
+                                    <td>
+                                        <?php echo date('m/d/Y', strtotime($ph_row['paid_at'])); ?>
+                                        <?php if (date('H:i:s', strtotime($ph_row['paid_at'])) !== '00:00:00'): ?>
+                                        <div style="font-size:0.72rem;color:var(--gray-400);"><?php echo date('g:i A', strtotime($ph_row['paid_at'])); ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo e(ucfirst($ph_row['payment_method'] ?? '—')); ?>
+                                        <?php if (!empty($ph_row['note'])): ?>
+                                            <div style="font-size:0.72rem;color:var(--gray-400);"><?php echo e($ph_row['note']); ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo e($ph_row['payment_ref'] ?: '—'); ?></td>
+                                    <td style="text-align:right;font-weight:600;color:<?php echo $ph_amt < 0 ? 'var(--danger)' : 'var(--success)'; ?>;">
+                                        <?php echo $ph_amt < 0 ? '−' : ''; ?>₱<?php echo number_format(abs($ph_amt),2); ?>
+                                    </td>
+                                    <td style="text-align:right;">₱<?php echo number_format(max($run_bal,0),2); ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php if (!$pay_history): ?>
+                                <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:16px;">No payments recorded yet.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                        </div>
                     </div>
                 </div>
 

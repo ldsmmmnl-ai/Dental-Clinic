@@ -51,7 +51,7 @@ if (!file_exists($htaccess)) {
 $rows = $conn->query(
     "SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
         'clinic_name','clinic_subtitle','clinic_address',
-        'clinic_phone','clinic_email','clinic_logo'
+        'clinic_phone','clinic_landline','clinic_email','clinic_logo'
     )"
 )->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -59,6 +59,7 @@ $cur_name     = $rows['clinic_name']     ?? 'DentalCare Clinic';
 $cur_subtitle = $rows['clinic_subtitle'] ?? 'Dental Clinic Management System';
 $cur_address  = $rows['clinic_address']  ?? '';
 $cur_phone    = $rows['clinic_phone']    ?? '';
+$cur_landline = $rows['clinic_landline'] ?? '';
 $cur_email    = $rows['clinic_email']    ?? '';
 $cur_logo     = $rows['clinic_logo']     ?? '';
 
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $subtitle = trim($_POST['clinic_subtitle'] ?? '');
         $address  = trim($_POST['clinic_address']  ?? '');
         $phone    = trim($_POST['clinic_phone']    ?? '');
+        $landline = trim($_POST['clinic_landline'] ?? '');
         $email    = trim($_POST['clinic_email']    ?? '');
 
         if ($name === '') {
@@ -82,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cs_save($conn, 'clinic_subtitle', $subtitle);
             cs_save($conn, 'clinic_address',  $address);
             cs_save($conn, 'clinic_phone',    $phone);
+            cs_save($conn, 'clinic_landline', $landline);
             cs_save($conn, 'clinic_email',    $email);
 
             // Reload for display
@@ -89,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cur_subtitle = $subtitle;
             $cur_address  = $address;
             $cur_phone    = $phone;
+            $cur_landline = $landline;
             $cur_email    = $email;
             $success      = 'Clinic information saved. All printed documents will now show the updated name.';
         }
@@ -227,12 +231,19 @@ if ($cur_logo !== '') {
                                 </div>
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                                     <div>
-                                        <label class="form-label fw-semibold" style="font-size:0.83rem;">Phone</label>
+                                        <label class="form-label fw-semibold" style="font-size:0.83rem;">Mobile / Phone</label>
                                         <input type="text" name="clinic_phone" class="form-control"
                                                value="<?php echo e($cur_phone); ?>"
                                                placeholder="e.g. +63 912 345 6789"
                                                maxlength="60"
                                                oninput="updatePrevContact()">
+                                    </div>
+                                    <div>
+                                        <label class="form-label fw-semibold" style="font-size:0.83rem;">Landline <span class="text-muted fw-normal">(shown on prescriptions)</span></label>
+                                        <input type="text" name="clinic_landline" class="form-control"
+                                               value="<?php echo e($cur_landline); ?>"
+                                               placeholder="e.g. (033) 509 68 46"
+                                               maxlength="60">
                                     </div>
                                     <div>
                                         <label class="form-label fw-semibold" style="font-size:0.83rem;">Email</label>

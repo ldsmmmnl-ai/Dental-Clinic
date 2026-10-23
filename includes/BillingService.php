@@ -72,7 +72,7 @@ class BillingService
                 CONCAT(p.first_name, ' ', p.last_name) AS patient_name,
                 p.patient_code,
                 p.phone,
-                s.service_name,
+                COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name,
                 a.appointment_code
             FROM bills b
             LEFT JOIN patients     p ON b.patient_id     = p.id
@@ -106,7 +106,7 @@ class BillingService
                 p.patient_code,
                 p.phone AS patient_phone,
                 p.email AS patient_email,
-                s.service_name,
+                COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name,
                 (b.amount_due - b.amount_paid) AS balance
             FROM bills b
             LEFT JOIN patients p ON b.patient_id = p.id
@@ -132,7 +132,7 @@ class BillingService
     public function getForPatient(int $patientId): array
     {
         $stmt = $this->conn->prepare("
-            SELECT b.*, s.service_name,
+            SELECT b.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name,
                    (b.amount_due - b.amount_paid) AS balance
             FROM bills b
             LEFT JOIN services s ON b.service_id = s.id
@@ -199,7 +199,7 @@ class BillingService
                 b.bill_code,
                 CONCAT(p.first_name, ' ', p.last_name) AS patient_name,
                 p.patient_code,
-                s.service_name,
+                COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name,
                 b.amount_due,
                 b.amount_paid,
                 (b.amount_due - b.amount_paid)         AS balance,
@@ -277,6 +277,7 @@ class BillingService
         $newPaid   = (float) $bill['amount_paid'] + $amount;
         $newStatus = $newPaid >= (float) $bill['amount_due'] ? 'paid' : 'partial';
 
+        ms_reconcile_payments($this->conn, $billId);   // keep payment history in step
         $stmt = $this->conn->prepare("
             UPDATE bills
             SET amount_paid    = ?,
@@ -285,7 +286,9 @@ class BillingService
                 payment_ref    = ?
             WHERE id = ?
         ");
-        return $stmt->execute([$newPaid, $newStatus, $method, $ref ?: null, $billId]);
+        $ok = $stmt->execute([$newPaid, $newStatus, $method, $ref ?: null, $billId]);
+        if ($ok) ms_log_payment($this->conn, $billId, $amount, $method, $ref ?: null);
+        return $ok;
     }
 
     // =========================================================================

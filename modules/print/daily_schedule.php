@@ -10,7 +10,7 @@ $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : date('Y-m-d');
 
 $ds_stmt = $conn->prepare("
     SELECT a.*, CONCAT(p.first_name,' ',p.last_name) as patient_name,
-           p.patient_code, p.phone, s.service_name, s.price,
+           p.patient_code, p.phone, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.price,
            u.full_name as staff_name
     FROM appointments a
     LEFT JOIN patients p ON a.patient_id = p.id

@@ -37,6 +37,10 @@ try {
     // NOW()/CURRENT_TIMESTAMP the database writes (audit log times, bills, notifications) is 8 hours behind.
     $conn->exec("SET time_zone = '+08:00'");
 
+    // Multi-service support: creates the two link tables automatically (nothing to import).
+    require_once __DIR__ . '/multi_service.php';
+    ms_ensure_tables($conn);
+
 } catch (PDOException $e) {
     error_log('[DB ERROR] ' . $e->getMessage());
     $isApi = str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');

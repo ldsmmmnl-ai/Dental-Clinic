@@ -21,6 +21,8 @@ $gender_f = trim($_GET['gender'] ?? '');
 $blood_f  = trim($_GET['blood']  ?? '');
 $per_page = 20;
 $page     = max(1, intval($_GET['page'] ?? 1));
+// Sort by registration date: newest first by default; ?order=oldest flips it.
+$order    = (($_GET['order'] ?? '') === 'oldest') ? 'oldest' : 'newest';
 
 // Build filter array — PatientService handles the WHERE clause internally
 $filters = [
@@ -37,7 +39,7 @@ $total_pages = max(1, ceil($total_count / $per_page));
 $page        = min($page, $total_pages);
 $offset      = ($page - 1) * $per_page;
 
-$patients    = $patientService->getList($filters, $per_page, $offset);
+$patients    = $patientService->getList($filters, $per_page, $offset, $order);
 $stats_row   = $patientService->getStats();
 $blood_types = $patientService->getBloodTypes();
 
@@ -46,7 +48,17 @@ $filter_parts = [];
 if ($search)   $filter_parts[] = 'search=' . urlencode($search);
 if ($gender_f) $filter_parts[] = 'gender=' . urlencode($gender_f);
 if ($blood_f)  $filter_parts[] = 'blood='  . urlencode($blood_f);
+// Keep the chosen sort when paging through results
+if ($order === 'oldest') $filter_parts[] = 'order=oldest';
 $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
+
+// Link for the "Registered" column header: clicking flips newest <-> oldest
+$sort_parts = [];
+if ($search)   $sort_parts[] = 'search=' . urlencode($search);
+if ($gender_f) $sort_parts[] = 'gender=' . urlencode($gender_f);
+if ($blood_f)  $sort_parts[] = 'blood='  . urlencode($blood_f);
+if ($order === 'newest') $sort_parts[] = 'order=oldest';   // currently newest → next click = oldest
+$sort_toggle_url = 'list.php' . ($sort_parts ? '?' . implode('&', $sort_parts) : '');
 ?><!DOCTYPE html>
 <html lang="en">
 <head><?php include '../../includes/head.php'; ?>
@@ -237,7 +249,13 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                                 <th>Gender</th>
                                 <th>Phone</th>
                                 <th>Visits</th>
-                                <th>Registered</th>
+                                <th>
+                                    <a href="<?php echo htmlspecialchars($sort_toggle_url); ?>"
+                                       style="color:inherit;text-decoration:none;white-space:nowrap;"
+                                       title="<?php echo $order === 'newest' ? 'Newest first — click for oldest first' : 'Oldest first — click for newest first'; ?>">
+                                        Registered <i class="bi <?php echo $order === 'newest' ? 'bi-sort-down' : 'bi-sort-up'; ?>"></i>
+                                    </a>
+                                </th>
                                 <th>Actions</th>
                             </tr>
                         </thead>

@@ -66,7 +66,7 @@ if ($view === 'month') {
                a.status, a.patient_id, a.notes,
                CONCAT(p.first_name,' ',p.last_name) as patient_name,
                p.patient_code, p.phone, p.allergies,
-               s.service_name, s.duration_minutes, s.price as service_price,
+               COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.duration_minutes, s.price as service_price,
                d.full_name as doctor_name, d.id as doctor_id,
                b.id as bill_id, b.amount_due, b.amount_paid, b.status as bill_status
         FROM appointments a
@@ -94,7 +94,7 @@ if ($view === 'day') {
                a.status, a.patient_id, a.notes,
                CONCAT(p.first_name,' ',p.last_name) as patient_name,
                p.patient_code, p.phone, p.allergies, p.blood_type, p.medical_notes,
-               s.service_name, s.duration_minutes, s.price as service_price,
+               COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.duration_minutes, s.price as service_price,
                d.full_name as doctor_name, d.id as doctor_id,
                b.id as bill_id, b.amount_due, b.amount_paid, b.status as bill_status
         FROM appointments a
@@ -138,7 +138,7 @@ if ($view === 'week') {
                a.status, a.patient_id, a.notes,
                CONCAT(p.first_name,' ',p.last_name) as patient_name,
                p.patient_code, p.phone, p.allergies,
-               s.service_name, s.duration_minutes,
+               COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.duration_minutes,
                d.full_name as doctor_name, d.id as doctor_id,
                b.id as bill_id, b.amount_due, b.amount_paid, b.status as bill_status
         FROM appointments a
@@ -954,11 +954,8 @@ $show_now=($day_date===$today&&$now_h>=$open_h&&$now_h<$close_h);
                     <input type="text" name="phone" class="form-control" placeholder="09XXXXXXXXX" maxlength="13">
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Service</label>
-                    <select name="service_id" class="form-select">
-                        <option value="">— No service selected —</option>
-                        <?php foreach($walkin_services as $sv): ?><option value="<?php echo $sv['id'];?>"><?php echo e($sv['service_name']);?> — ₱<?php echo number_format($sv['price'],2);?></option><?php endforeach;?>
-                    </select>
+                    <label class="form-label">Services <span style="font-size:0.72rem;color:var(--gray-400);font-weight:400;">(tick all that apply)</span></label>
+                    <?php echo ms_checkbox_list($walkin_services, [], ['prefix' => 'cal_svc']); ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label">Doctor</label>

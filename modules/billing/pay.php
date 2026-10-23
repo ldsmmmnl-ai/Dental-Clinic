@@ -20,7 +20,7 @@ $return_url   = $from_patient
 
 $bill_stmt = $conn->prepare("
     SELECT b.*, CONCAT(p.first_name,' ',p.last_name) as patient_name,
-           p.patient_code, s.service_name
+           p.patient_code, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name
     FROM bills b
     LEFT JOIN patients p ON b.patient_id = p.id
     LEFT JOIN services s ON b.service_id = s.id
@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gcash_ref      = trim($_POST['gcash_ref'] ?? '');
     $bank_ref       = trim($_POST['bank_ref']  ?? '');
     $payment_ref    = $gcash_ref ?: $bank_ref ?: '';
+    // Date the patient really paid (defaults to today; no future dates)
+    $pay_date = trim($_POST['pay_date'] ?? '');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $pay_date) || $pay_date > date('Y-m-d')) $pay_date = date('Y-m-d');
 
     // Whitelist payment method
     $allowed_methods = ['cash', 'gcash', 'bank', 'other'];
@@ -52,6 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($add_payment > $balance + 0.01) {
         $error = 'Payment amount cannot exceed the remaining balance of ₱' . number_format($balance, 2) . '.';
     } else {
+        // Make sure payments made BEFORE payment history existed are in the history first
+        ms_reconcile_payments($conn, $id);
+
         $new_paid = $bill['amount_paid'] + $add_payment;
         $new_status = $new_paid >= $bill['amount_due'] ? 'paid' : 'partial';
 
@@ -65,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->rowCount() < 1) {
             $error = 'Failed to record payment. Please try again.';
         } else {
+            // Payment history: one row for THIS payment (date, amount, method, reference)
+            ms_log_payment($conn, $id, $add_payment, $payment_method, $payment_ref, null, (int)$current_user_id, $pay_date);
             log_action($conn, $current_user_id, $current_user_name,
                 'Recorded Payment', 'billing', $id,
                 "Bill: {$bill['bill_code']} | Added: ₱$add_payment | Method: $payment_method | New status: $new_status"
@@ -156,6 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <option value="bank">🏦 Bank Transfer</option>
                                 <option value="other">💳 Other</option>
                             </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Payment Date</label>
+                            <input type="date" name="pay_date" class="form-control" value="<?php echo date('Y-m-d'); ?>" max="<?php echo date('Y-m-d'); ?>">
+                            <small style="color:var(--gray-400);font-size:0.72rem;">The date the patient paid — change it if you are entering an earlier payment.</small>
                         </div>
                         <div class="col-12" id="gcash_ref_row" style="display:none;">
                             <!-- GCash QR code panel -->

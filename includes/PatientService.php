@@ -56,13 +56,21 @@ class PatientService
      * @param  array $filters  Keys: search, gender, blood_type
      * @param  int   $limit    Rows per page
      * @param  int   $offset   Pagination offset
+     * @param  string $order   'newest' (default) = most recently registered first,
+     *                         'oldest' = earliest registered first.
+     *                         Ties (same timestamp) fall back to id so the order is stable.
      * @return array
      */
-    public function getList(array $filters = [], int $limit = 20, int $offset = 0): array
+    public function getList(array $filters = [], int $limit = 20, int $offset = 0, string $order = 'newest'): array
     {
         [$where, $params] = $this->buildWhere($filters);
         $params[] = $limit;
         $params[] = $offset;
+
+        // Whitelisted — never interpolate user input into ORDER BY directly.
+        $orderBy = ($order === 'oldest')
+            ? 'p.created_at ASC, p.id ASC'
+            : 'p.created_at DESC, p.id DESC';
 
         $stmt = $this->conn->prepare("
             SELECT p.*, COUNT(a.id) AS total_visits
@@ -71,7 +79,7 @@ class PatientService
                 ON a.patient_id = p.id AND a.status = 'completed'
             $where
             GROUP BY p.id
-            ORDER BY p.last_name ASC, p.first_name ASC
+            ORDER BY $orderBy
             LIMIT ? OFFSET ?
         ");
         $stmt->execute($params);

@@ -13,7 +13,7 @@ $bill_stmt = $conn->prepare("
     SELECT b.*,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code, p.address, p.phone, p.email,
-           s.service_name, s.price as service_price, s.duration_minutes,
+           COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `bill_services` ms_x WHERE ms_x.`bill_id` = b.id), s.service_name) AS service_name, s.price as service_price, s.duration_minutes,
            a.appointment_code, a.appointment_date, a.appointment_time,
            u.full_name as received_by_name
     FROM bills b
@@ -49,11 +49,27 @@ if ($bill['patient_id']) {
 }
 
 $balance  = $bill['amount_due'] - $bill['amount_paid'];
+
+// Payment history (one row per payment)
+$pay_history = [];
+ms_reconcile_payments($conn, $bill_id);   // bills paid before payment history existed get one "earlier payments" line
+try {
+    $ph = $conn->prepare("SELECT * FROM bill_payments WHERE bill_id = ? ORDER BY paid_at ASC, id ASC");
+    $ph->execute([$bill_id]);
+    $pay_history = $ph->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { /* run database/migration_payment_history.sql */ }
 $or_num   = 'OR-' . str_pad($bill_id, 5, '0', STR_PAD_LEFT);
 $is_paid  = $balance <= 0;
 
 // ADA code map — common dental procedure codes
 $ada_codes = [
+    'Consultation / Check-up'  => 'D0120',
+    'Oral Prophylaxis'         => 'D1110',
+    'Tooth Restoration'        => 'D2140',
+    'Root Canal Treatment'     => 'D3330',
+    'Odontectomy / Surgery'    => 'D7210',
+    'Orthodontic Treatment'    => 'D8080',
+    'Prosthodontic Treatment'  => 'D5110',
     'Dental Checkup'           => 'D0120',
     'Dental Cleaning'          => 'D1110',
     'Teeth Whitening'          => 'D9975',
@@ -65,7 +81,9 @@ $ada_codes = [
     'Orthodontic Consultation' => 'D8660',
     'Dentures'                 => 'D5110',
 ];
-$ada = $ada_codes[$bill['service_name']] ?? '—';
+$bill_svcs = ms_get($conn, 'bill_services', 'bill_id', $bill_id, (int)($bill['service_id'] ?? 0) ?: null);
+$multi_svc = count($bill_svcs) > 1;
+$ada = $multi_svc ? '—' : ($ada_codes[$bill['service_name'] ?? ''] ?? '—');
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -283,6 +301,26 @@ $ada = $ada_codes[$bill['service_name']] ?? '—';
                 </tr>
             </thead>
             <tbody>
+                <?php if ($multi_svc):
+                    $svc_sum = 0.0;
+                    foreach ($bill_svcs as $__sv): $svc_sum += (float)$__sv['price']; $__ada = $ada_codes[$__sv['service_name']] ?? '—'; ?>
+                <tr>
+                    <td><strong><?php echo e($__sv['service_name']); ?></strong></td>
+                    <td><span class="ada-badge"><?php echo $__ada; ?></span></td>
+                    <td></td>
+                </tr>
+                <?php endforeach; ?>
+                <?php if ($dental && ($dental['tooth_number'] || $dental['diagnosis'] || $dental['treatment_done'] || $bill['appointment_date'])): ?>
+                <tr>
+                    <td colspan="3">
+                        <?php if ($dental['tooth_number']): ?><div class="tooth-info">🦷 Tooth / Area: <?php echo e($dental['tooth_number']); ?></div><?php endif; ?>
+                        <?php if ($dental['diagnosis']): ?><div class="tooth-info">Diagnosis: <?php echo e($dental['diagnosis']); ?></div><?php endif; ?>
+                        <?php if ($dental['treatment_done']): ?><div class="tooth-info">Procedure: <?php echo e($dental['treatment_done']); ?></div><?php endif; ?>
+                        <?php if ($bill['appointment_date']): ?><div class="tooth-info">Visit Date: <?php echo date('M d, Y', strtotime($bill['appointment_date'])); ?></div><?php endif; ?>
+                    </td>
+                </tr>
+                <?php endif; ?>
+                <?php else: ?>
                 <tr>
                     <td>
                         <strong><?php echo e($bill['service_name'] ?? 'Dental Service'); ?></strong>
@@ -305,15 +343,25 @@ $ada = $ada_codes[$bill['service_name']] ?? '—';
                     <td><span class="ada-badge"><?php echo $ada; ?></span></td>
                     <td>₱<?php echo number_format($bill['amount_due'], 2); ?></td>
                 </tr>
+                <?php endif; ?>
             </tbody>
         </table>
 
         <!-- Totals -->
         <div class="totals">
             <div class="total-row">
-                <span class="tl">Total Due</span>
+                <span class="tl">Total Bill</span>
                 <span class="tv">₱<?php echo number_format($bill['amount_due'], 2); ?></span>
             </div>
+            <?php if ($pay_history): ?>
+            <div class="total-row" style="margin-top:4px;"><span class="tl"><strong>Payment History</strong></span><span class="tv"></span></div>
+            <?php $run_bal = (float)$bill['amount_due']; foreach ($pay_history as $ph_row):
+                $ph_amt = (float)$ph_row['amount']; $run_bal = round($run_bal - $ph_amt, 2); ?>
+            <div class="total-row" style="font-size:0.78rem;">
+                <span class="tl"><?php echo date('m/d/Y', strtotime($ph_row['paid_at'])); ?> · <?php echo e(ucfirst($ph_row['payment_method'] ?? '')); ?><?php echo $ph_amt < 0 ? ' (cancelled)' : ''; ?></span>
+                <span class="tv"><?php echo $ph_amt < 0 ? '−' : ''; ?>₱<?php echo number_format(abs($ph_amt), 2); ?> <span style="color:#64748b;font-weight:400;">(bal ₱<?php echo number_format(max($run_bal,0), 2); ?>)</span></span>
+            </div>
+            <?php endforeach; endif; ?>
             <div class="total-row">
                 <span class="tl">Amount Paid</span>
                 <span class="tv" style="color:#16a34a;">₱<?php echo number_format($bill['amount_paid'], 2); ?></span>

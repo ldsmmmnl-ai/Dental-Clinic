@@ -5,6 +5,7 @@
 //   $cs['subtitle'] — e.g. "Your Trusted Dental Care Partner"
 //   $cs['address']  — e.g. "123 Main St, Iloilo City"
 //   $cs['phone']    — e.g. "+63 912 345 6789"
+//   $cs['landline'] — e.g. "(033) 509 68 46" (optional, printed on prescriptions)
 //   $cs['email']    — e.g. "info@honeytooth.ph"
 //   $cs['logo_url'] — absolute URL to logo image, or '' if none uploaded
 //   $cs['logo_html']— ready-to-embed <img> tag or the 🦷 emoji fallback
@@ -18,7 +19,7 @@ function clinic_settings(PDO $conn): array {
     $rows = $conn->query(
         "SELECT setting_key, setting_value FROM settings WHERE setting_key IN (
             'clinic_name','clinic_subtitle','clinic_address',
-            'clinic_phone','clinic_email','clinic_logo'
+            'clinic_phone','clinic_landline','clinic_email','clinic_logo'
         )"
     )->fetchAll(PDO::FETCH_KEY_PAIR);
 
@@ -26,6 +27,7 @@ function clinic_settings(PDO $conn): array {
     $subtitle = trim($rows['clinic_subtitle'] ?? '') ?: 'Dental Clinic Management System';
     $address  = trim($rows['clinic_address']  ?? '');
     $phone    = trim($rows['clinic_phone']    ?? '');
+    $landline = trim($rows['clinic_landline'] ?? '');
     $email    = trim($rows['clinic_email']    ?? '');
     $logo_val = trim($rows['clinic_logo']     ?? '');
 
@@ -66,6 +68,7 @@ function clinic_settings(PDO $conn): array {
         'subtitle'  => $subtitle,
         'address'   => $address,
         'phone'     => $phone,
+        'landline'  => $landline,
         'email'     => $email,
         'logo_url'  => $logo_url,
         'logo_html' => $logo_html,

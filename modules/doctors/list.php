@@ -5,8 +5,10 @@
 require_once '../../includes/config.php';
 require_once '../../includes/db.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/doctor_ptr.php';
 
 require_admin();
+$has_ptr_col = ensure_doctor_ptr_column($conn);   // adds doctors.ptr_number if missing
 
 // Ensure current user variables are defined (auth.php should set these, but
 // provide a safe fallback to avoid "undefined variable" notices).
@@ -27,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id             = intval($_POST['doctor_id'] ?? 0);
         $full_name      = trim($_POST['full_name'] ?? '');
         $license_number = trim($_POST['license_number'] ?? '');
+        $ptr_number     = trim($_POST['ptr_number'] ?? '');
         $specialization = trim($_POST['specialization'] ?? '');
         $bio            = trim($_POST['bio'] ?? '');
         $schedule_days  = trim($_POST['schedule_days'] ?? '');
@@ -73,12 +76,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt = $conn->prepare("UPDATE doctors SET full_name=?,license_number=?,specialization=?,bio=?,schedule_days=?,start_time=?,end_time=?,is_active=?,updated_at=NOW() WHERE id=?");
                         $stmt->execute([$full_name,$license_number,$specialization,$bio,$schedule_days,$start_time,$end_time,$is_active,$id]);
                     }
+                    if ($has_ptr_col) {
+                        $conn->prepare("UPDATE doctors SET ptr_number=? WHERE id=?")->execute([$ptr_number !== '' ? $ptr_number : null, $id]);
+                    }
                     log_action($conn,$current_user_id,$current_user_name,'Updated Doctor','doctors',$id,"Updated: $full_name");
                     $success = "Doctor updated successfully.";
                 } else {
                     $stmt = $conn->prepare("INSERT INTO doctors (full_name, license_number, specialization, bio, photo_url, schedule_days, start_time, end_time, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$full_name, $license_number, $specialization, $bio, $photo_url, $schedule_days, $start_time, $end_time, $is_active]);
                     $new_id = $conn->lastInsertId();
+                    if ($has_ptr_col && $ptr_number !== '') {
+                        $conn->prepare("UPDATE doctors SET ptr_number=? WHERE id=?")->execute([$ptr_number, $new_id]);
+                    }
                     log_action($conn,$current_user_id,$current_user_name,'Added Doctor','doctors',$new_id,"Added: $full_name");
                     $success = "Dr. $full_name added successfully.";
                 }
@@ -497,6 +506,10 @@ $day_labels = [
                 <input type="text" name="license_number" id="f_license_number" class="form-control" placeholder="e.g. PRC-0001234">
             </div>
             <div class="mb-3">
+                <label class="form-label">PTR Number</label>
+                <input type="text" name="ptr_number" id="f_ptr_number" class="form-control" placeholder="Professional Tax Receipt no. (printed on prescriptions)">
+            </div>
+            <div class="mb-3">
                 <label class="form-label">Specialization</label>
                 <input type="text" name="specialization" id="f_specialization" class="form-control" placeholder="e.g. Orthodontist, Oral Surgeon">
             </div>
@@ -636,6 +649,7 @@ function editDoctor(doc) {
     document.getElementById('f_doctor_id').value       = doc.id;
     document.getElementById('f_full_name').value       = doc.full_name;
     document.getElementById('f_license_number').value  = doc.license_number || '';
+    document.getElementById('f_ptr_number').value      = doc.ptr_number || '';
     document.getElementById('f_specialization').value  = doc.specialization || '';
     document.getElementById('f_bio').value             = doc.bio || '';
     document.getElementById('f_start_time').value      = (doc.start_time || '08:00:00').substring(0,5);

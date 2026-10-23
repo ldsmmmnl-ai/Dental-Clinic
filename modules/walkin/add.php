@@ -93,7 +93,7 @@ function find_next_available_slot($conn) {
     // e.g. A 90-min root canal at 13:00 must also block the 13:30 slot.
     $br = $conn->prepare("
         SELECT a.appointment_time,
-               COALESCE(s.duration_minutes, ?) AS duration_minutes
+               COALESCE((SELECT SUM(sv.duration_minutes) FROM appointment_services x JOIN services sv ON sv.id=x.service_id WHERE x.appointment_id=a.id), s.duration_minutes, ?) AS duration_minutes
         FROM   appointments a
         LEFT JOIN services s ON s.id = a.service_id
         WHERE  a.appointment_date = ?
@@ -192,7 +192,7 @@ function get_slots_for_date_any($conn, $date) {
     $def_dur  = intval($sched['slot_duration_minutes'] ?? 30);
 
     // Get booked appointments
-    $ast = $conn->prepare("SELECT a.appointment_time, COALESCE(s.duration_minutes,?) AS duration_minutes FROM appointments a LEFT JOIN services s ON s.id=a.service_id WHERE a.appointment_date=? AND a.status NOT IN ('cancelled','no-show')");
+    $ast = $conn->prepare("SELECT a.appointment_time, COALESCE((SELECT SUM(sv.duration_minutes) FROM appointment_services x JOIN services sv ON sv.id=x.service_id WHERE x.appointment_id=a.id), s.duration_minutes, ?) AS duration_minutes FROM appointments a LEFT JOIN services s ON s.id=a.service_id WHERE a.appointment_date=? AND a.status NOT IN ('cancelled','no-show')");
     $ast->execute([$def_dur, $date]);
     $arows = $ast->fetchAll(PDO::FETCH_ASSOC);
     $ast->closeCursor();
@@ -282,7 +282,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // FIX #1: Use null instead of 0 when no service/doctor is selected.
     // A value of 0 breaks the FK constraint on the appointments table.
-    $service_id  = !empty($_POST['service_id']) ? intval($_POST['service_id']) : null;
+    // One or MANY services (check-boxes). service_id keeps the FIRST one for reports / older pages.
+    $service_ids = array_map(fn($r) => (int)$r['id'], ms_fetch_services($conn, ms_post_ids()));
+    $service_id  = $service_ids[0] ?? null;
     $doctor_id   = !empty($_POST['doctor_id'])  ? intval($_POST['doctor_id'])  : null;
 
     $notes         = trim($_POST['notes']         ?? '');
@@ -318,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Service is required for all walk-ins
     if (empty($error) && $mode === 'walkin' && empty($service_id)) {
-        $error = 'Please select a service for this walk-in.';
+        $error = 'Please tick at least one service for this walk-in.';
     }
     // Prefer selected_time (slot picker) over manual_time
     $slot_input = !empty($selected_time) ? $selected_time : $manual_time;
@@ -353,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $sel_ts = strtotime($appointment_date . ' ' . $slot_input);
                 $conf_stmt = $conn->prepare("
-                    SELECT a.appointment_time, COALESCE(s.duration_minutes,30) AS duration_minutes
+                    SELECT a.appointment_time, COALESCE((SELECT SUM(sv.duration_minutes) FROM appointment_services x JOIN services sv ON sv.id=x.service_id WHERE x.appointment_id=a.id), s.duration_minutes, 30) AS duration_minutes
                     FROM appointments a LEFT JOIN services s ON s.id=a.service_id
                     WHERE a.appointment_date=? AND a.status NOT IN ('cancelled','no-show')
                 ");
@@ -481,16 +483,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upd->closeCursor();
             $stmt2->closeCursor();
 
-            // Get service info for the slip
+            // Save every ticked service on this appointment + build the slip text
             $svc_name  = '—';
             $svc_price = 0;
-            if ($service_id) {
-                $svc_stmt = $conn->prepare("SELECT service_name, price FROM services WHERE id = ? LIMIT 1");
-                $svc_stmt->execute([$service_id]);
-                $svc_row   = $svc_stmt->fetch(PDO::FETCH_ASSOC);
-                $svc_stmt->closeCursor();
-                $svc_name  = $svc_row['service_name'] ?? '—';
-                $svc_price = $svc_row['price'] ?? 0;
+            if ($service_ids) {
+                $saved_svcs = ms_save($conn, 'appointment_services', 'appointment_id', $new_appt_id, $service_ids);
+                if ($saved_svcs) {
+                    $svc_name  = implode(', ', array_column($saved_svcs, 'service_name'));
+                    $svc_price = array_sum(array_map(fn($r) => (float)$r['price'], $saved_svcs));
+                }
             }
 
             // FIX #3: Look up doctor name so it can be included in the AJAX response.
@@ -811,9 +812,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
                     <div class="slip-row"><span class="sl">Patient Name</span><span class="sv"><?php echo e($new_appt['patient_name']); ?></span></div>
                     <div class="slip-row"><span class="sl">Phone</span><span class="sv"><?php echo e($new_appt['phone'] ?: '—'); ?></span></div>
                     <div class="slip-row"><span class="sl">Service</span><span class="sv"><?php echo e($new_appt['service']); ?></span></div>
-                    <?php if ($new_appt['price'] > 0): ?>
-                    <div class="slip-row"><span class="sl">Estimated Fee</span><span class="sv">₱<?php echo number_format($new_appt['price'], 2); ?></span></div>
-                    <?php endif; ?>
                     <div class="slip-row"><span class="sl">Served by</span><span class="sv"><?php echo e($new_appt['staff']); ?></span></div>
                     <div style="text-align:center;margin-top:14px;font-size:0.72rem;color:var(--gray-400);">
                         Please present this slip at the reception.<br>Generated: <?php echo date('M d, Y h:i A'); ?>
@@ -893,13 +891,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
                                 <div id="phone_hint" style="font-size:0.72rem;margin-top:3px;color:var(--gray-400);">Optional for today's walk-ins</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Service <span style="color:var(--danger)">*</span></label>
-                                <select name="service_id" id="sf_service_id" class="form-select" required>
-                                    <option value="">Select Service</option>
-                                    <?php foreach ($services as $s): ?>
-                                    <option value="<?php echo $s['id']; ?>"><?php echo e($s['service_name']); ?> — ₱<?php echo number_format($s['price'], 2); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <label class="form-label">Services <span style="color:var(--danger)">*</span> <span style="font-size:0.72rem;color:var(--gray-400)">(tick all that apply)</span></label>
+                                <?php echo ms_checkbox_list($services, [], ['prefix' => 'wk_svc']); ?>
                             </div>
                             <?php if (!empty($walkin_doctors)): ?>
                             <div class="col-md-6">
@@ -1111,4 +1104,4 @@ function enableNameFields(on) {
 </div>
 <?php include '../../includes/footer.php'; ?>
 </body>
-</html>
+</html> 

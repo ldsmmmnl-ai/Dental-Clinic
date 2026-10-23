@@ -167,7 +167,7 @@ if ($action === 'get_appointment') {
         SELECT a.id, a.appointment_code, a.patient_id, a.service_id, a.doctor_id,
                a.appointment_date, a.appointment_time, a.type, a.status, a.notes,
                CONCAT(p.first_name,' ',p.last_name) as patient_name,
-               s.service_name, d.full_name as doctor_name
+               COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, d.full_name as doctor_name
         FROM appointments a
         LEFT JOIN patients p ON p.id = a.patient_id
         LEFT JOIN services s ON s.id = a.service_id
@@ -218,7 +218,7 @@ if ($action === 'reschedule') {
     }
 
     // Fetch current appointment to log changes
-    $cur = $conn->prepare("SELECT appointment_code, appointment_date, appointment_time, patient_id, status FROM appointments WHERE id = ? LIMIT 1");
+    $cur = $conn->prepare("SELECT appointment_code, appointment_date, appointment_time, patient_id, status, service_id FROM appointments WHERE id = ? LIMIT 1");
     $cur->execute([$id]);
     $current = $cur->fetch(PDO::FETCH_ASSOC);
     if (!$current) {
@@ -252,6 +252,10 @@ if ($action === 'reschedule') {
         WHERE id = ?
     ");
     if ($stmt->execute([$new_date, $new_time, $new_service_id, $new_doctor_id, $new_notes, $id])) {
+        // Keep the multi-service list in step: only reset it when the service was actually changed
+        if ((int)($current['service_id'] ?? 0) !== (int)$new_service_id) {
+            ms_save($conn, 'appointment_services', 'appointment_id', $id, $new_service_id ? [$new_service_id] : []);
+        }
         $old_date = date('M d, Y', strtotime($current['appointment_date']));
         $new_date_fmt = date('M d, Y', strtotime($new_date));
         $details = "Rescheduled from $old_date " . date('h:i A', strtotime($current['appointment_time']))

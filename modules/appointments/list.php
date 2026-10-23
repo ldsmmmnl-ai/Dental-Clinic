@@ -608,7 +608,7 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                                 $conn->query("SELECT id, service_name, price FROM services WHERE is_active = TRUE ORDER BY service_name")
                                      ->fetchAll(PDO::FETCH_ASSOC), 300);
                             foreach ($svc_list as $sv): ?>
-                            <option value="<?php echo $sv['id']; ?>"><?php echo e($sv['service_name']); ?> — ₱<?php echo number_format($sv['price'], 2); ?></option>
+                            <option value="<?php echo $sv['id']; ?>"><?php echo e($sv['service_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -1072,13 +1072,8 @@ function doConfirmAppt() {
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label">Service</label>
-                    <select name="service_id" class="form-select">
-                        <option value="">— No service selected —</option>
-                        <?php foreach ($walkin_services as $sv): ?>
-                        <option value="<?php echo $sv['id']; ?>"><?php echo e($sv['service_name']); ?> — ₱<?php echo number_format($sv['price'],2); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="form-label">Services <span style="font-size:0.72rem;color:var(--gray-400);font-weight:400;">(tick all that apply)</span></label>
+                    <?php echo ms_checkbox_list($walkin_services, [], ['prefix' => 'drw_svc']); ?>
                 </div>
 
                 <div class="col-12">

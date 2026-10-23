@@ -22,7 +22,7 @@ if ($action === 'get_appointments') {
     $stmt = $conn->prepare("
         SELECT a.id, a.appointment_code, a.service_id, a.status,
             DATE_FORMAT(a.appointment_date, '%M %d, %Y') as appointment_date,
-            s.service_name, s.price
+            COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `appointment_services` ms_x WHERE ms_x.`appointment_id` = a.id), s.service_name) AS service_name, s.price
         FROM appointments a
         LEFT JOIN services s ON a.service_id = s.id
         WHERE a.patient_id = ?

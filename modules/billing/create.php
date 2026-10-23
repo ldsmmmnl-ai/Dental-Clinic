@@ -30,6 +30,7 @@ $pre_patient_info  = null;
 $pre_service_info  = null;
 $pre_service_id    = 0;
 $pre_service_price = 0;
+$pre_service_ids   = [];
 if ($pre_patient_id) {
     $pp_stmt = $conn->prepare("SELECT id, patient_code, first_name, last_name FROM patients WHERE id = ? LIMIT 1");
     $pp_stmt->execute([$pre_patient_id]);
@@ -49,6 +50,10 @@ if ($pre_appt_id) {
     if ($pre_service_info) {
         $pre_service_id    = intval($pre_service_info['service_id'] ?? 0);
         $pre_service_price = floatval($pre_service_info['price'] ?? 0);
+        // The appointment may have MORE THAN ONE service — pre-tick all of them.
+        $pre_rows = ms_get($conn, 'appointment_services', 'appointment_id', $pre_appt_id, $pre_service_id ?: null);
+        $pre_service_ids = array_values(array_filter(array_map(fn($r) => (int)$r['service_id'], $pre_rows)));
+        if ($pre_rows) $pre_service_price = array_sum(array_map(fn($r) => (float)$r['price'], $pre_rows));
     }
 }
 
@@ -76,25 +81,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $patient_id     = intval($_POST['patient_id'] ?? 0);
     $appointment_id = intval($_POST['appointment_id'] ?? 0) ?: null;
-    $service_id     = intval($_POST['service_id'] ?? 0) ?: null;
+    // One or MANY services (check-boxes). service_id keeps the FIRST one for reports/old pages.
+    $service_ids    = array_map(fn($r) => (int)$r['id'], ms_fetch_services($conn, ms_post_ids()));
+    $service_id     = $service_ids[0] ?? null;
     $amount_due     = round(floatval($_POST['amount_due']  ?? 0), 2);
+    // The total bill is TYPED IN by the clinic (services are names only — no list prices).
     $amount_paid    = round(floatval($_POST['amount_paid'] ?? 0), 2);
     $payment_method = $_POST['payment_method'] ?? 'cash';
     $notes          = trim($_POST['notes'] ?? '');
     $gcash_ref      = trim($_POST['gcash_ref'] ?? '');
     $bank_ref       = trim($_POST['bank_ref']  ?? '');
+    // Date the patient paid (defaults to today; no future dates)
+    $pay_date       = trim($_POST['pay_date'] ?? '');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $pay_date) || $pay_date > date('Y-m-d')) $pay_date = date('Y-m-d');
 
     // Save for form repopulation on error
     $old = [
         'patient_id'     => $patient_id,
         'appointment_id' => $appointment_id,
         'service_id'     => $service_id,
+        'service_ids'    => $service_ids,
         'amount_due'     => $amount_due,
         'amount_paid'    => $amount_paid,
         'payment_method' => $payment_method,
         'notes'          => $notes,
         'gcash_ref'      => $gcash_ref,
         'bank_ref'       => $bank_ref,
+        'pay_date'       => $pay_date,
     ];
 
     // Whitelist payment method
@@ -128,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            FROM dental_records dr
                            WHERE dr.patient_id = ?
                              AND dr.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
-                        . ($service_id ? " AND dr.service_id = ?" : "") . "
+                        . ($service_ids ? " AND dr.service_id IN (" . implode(',', array_fill(0, count($service_ids), '?')) . ")" : "") . "
                              AND NOT EXISTS (
                                  SELECT 1 FROM bills b
                                  WHERE b.patient_id = dr.patient_id
@@ -138,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            ORDER BY dr.visit_date DESC, dr.id DESC
                            LIMIT 1";
                 $al_stmt = $conn->prepare($al_sql);
-                $al_stmt->execute($service_id ? [$patient_id, $service_id] : [$patient_id]);
+                $al_stmt->execute($service_ids ? array_merge([$patient_id], $service_ids) : [$patient_id]);
                 $al_row = $al_stmt->fetch(PDO::FETCH_ASSOC);
                 $al_stmt->closeCursor();
                 if ($al_row) {
@@ -191,6 +204,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $new_id = $conn->lastInsertId();
                 $stmt->closeCursor();
+
+                // Save every ticked service on this bill (name + price snapshot)
+                if ($service_ids) ms_save($conn, 'bill_services', 'bill_id', (int)$new_id, $service_ids);
+
+                // Payment history: the first payment (down payment / full payment), with its date
+                if ($amount_paid > 0) {
+                    ms_log_payment($conn, (int)$new_id, $amount_paid, $payment_method, $payment_ref,
+                                   $status === 'paid' ? 'Full payment' : 'Down payment', (int)$current_user_id, $pay_date);
+                }
 
                 log_action($conn, $current_user_id, $current_user_name,
                     'Created Bill', 'billing', $new_id,
@@ -346,29 +368,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             Service & Amount
                         </p>
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Service</label>
-                                <?php if ($pre_from_treatment && $pre_service_id): ?>
-                                    <input type="hidden" name="service_id" value="<?php echo $pre_service_id; ?>">
-                                    <input type="text" class="form-control" readonly style="background:var(--gray-100);color:var(--gray-600);cursor:not-allowed;"
-                                        value="<?php echo e($pre_service_info['service_name'] ?? 'N/A'); ?> — ₱<?php echo number_format($pre_service_price, 2); ?>">
-                                    <small style="color:var(--blue-500);font-size:0.72rem;"><i class="bi bi-lock-fill"></i> Locked from appointment</small>
-                                <?php else: ?>
-                                    <select name="service_id" id="service_select" class="form-select" onchange="fillPrice(this)">
-                                        <option value="">Select Service</option>
-                                        <?php foreach ($services as $s): ?>
-                                        <option value="<?php echo $s['id']; ?>" data-price="<?php echo $s['price']; ?>"
-                                            <?php echo (!empty($old['service_id']) && $old['service_id'] == $s['id']) ? 'selected' : ''; ?>>
-                                            <?php echo e($s['service_name']); ?> — ₱<?php echo number_format($s['price'],2); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                            <div class="col-12">
+                                <label class="form-label">Services <span style="font-size:0.72rem;color:var(--gray-400)">(tick all that apply)</span></label>
+                                <?php
+                                $sel_svc = !empty($old) ? ($old['service_ids'] ?? []) : ($pre_from_treatment ? $pre_service_ids : []);
+                                echo ms_checkbox_list($services, $sel_svc, ['prefix' => 'bill_svc']);
+                                ?>
+                                <?php if ($pre_from_treatment && $pre_service_ids): ?>
+                                    <small style="color:var(--blue-500);font-size:0.72rem;"><i class="bi bi-info-circle"></i> Pre-ticked from the appointment — you can tick more services.</small>
                                 <?php endif; ?>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Amount Due (₱) <span style="color:var(--danger)">*</span></label>
+                                <label class="form-label">Total Bill (₱) <span style="color:var(--danger)">*</span></label>
                                 <input type="number" name="amount_due" id="amount_due" class="form-control"
-                                    step="0.01" min="0" required placeholder="0.00"
+                                    step="0.01" min="0" required placeholder="Type the total bill, e.g. 12000"
+                                    oninput="updateBalance()"
                                     value="<?php echo htmlspecialchars(
                                         !empty($old) ? ($old['amount_due'] > 0 ? $old['amount_due'] : '') :
                                         ($pre_from_treatment && $pre_service_price > 0 ? $pre_service_price : '')
@@ -401,6 +415,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     step="0.01" min="0" placeholder="0.00"
                                     value="<?php echo htmlspecialchars($old['amount_paid'] ?? 0); ?>"
                                     oninput="updateBalance()">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Date</label>
+                                <input type="date" name="pay_date" class="form-control"
+                                    value="<?php echo htmlspecialchars($old['pay_date'] ?? date('Y-m-d')); ?>" max="<?php echo date('Y-m-d'); ?>">
                             </div>
 
                             <!-- GCash reference -->
