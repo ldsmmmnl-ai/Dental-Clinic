@@ -41,6 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $med_notes      = trim($_POST['medical_notes'] ?? '');
     $ill_history    = trim($_POST['illness_history'] ?? '');
     $treatment_plan = trim($_POST['treatment_plan'] ?? '');
+    // Registration date (editable so old paper records can carry their real date). Blank = leave unchanged.
+    $reg_date    = trim($_POST['registered_date'] ?? '');
+    $reg_date_ok = $reg_date === '' || (
+                       preg_match('/^\d{4}-\d{2}-\d{2}$/', $reg_date)
+                       && checkdate((int)substr($reg_date, 5, 2), (int)substr($reg_date, 8, 2), (int)substr($reg_date, 0, 4))
+                       && $reg_date <= date('Y-m-d')
+                       && $reg_date >= '1990-01-01'
+                   );
 
     // SECURITY #4 — Server-side field length caps
     $length_errors = [];
@@ -55,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($length_errors)) {
         $error = 'Field(s) exceed maximum length: ' . implode(', ', $length_errors) . '.';
+    } elseif (!$reg_date_ok) {
+        $error = 'Registration date must be a valid date that is not in the future.';
     } elseif (empty($first_name) || empty($last_name)) {
         $error = 'First name and last name are required.';
     } elseif (strlen($first_name) < 2 || strlen($last_name) < 2) {
@@ -89,6 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $address, $occupation, $phone, $email, $ec_name, $ec_phone,
             $blood, $med_notes, $ill_history, $treatment_plan, $id
         ])) {
+            // Change the registration date only if it actually changed; keep the original time of day.
+            $old_reg_date = substr((string)($patient['created_at'] ?? ''), 0, 10);
+            if ($reg_date !== '' && $reg_date !== $old_reg_date) {
+                $old_time = substr((string)($patient['created_at'] ?? ''), 11, 8) ?: '12:00:00';
+                $conn->prepare("UPDATE patients SET created_at = ? WHERE id = ?")->execute([$reg_date . ' ' . $old_time, $id]);
+                log_action($conn, $current_user_id, $current_user_name, 'Changed Registration Date', 'patients', $id, "Registration date: $old_reg_date → $reg_date");
+            }
             log_action($conn, $current_user_id, $current_user_name, 'Edited Patient', 'patients', $id, "Updated: $first_name $last_name");
             $success = $clear_incomplete
                 ? 'Patient record updated successfully. Profile is now complete.'
@@ -197,6 +214,13 @@ if (isset($_GET['delete']) && is_admin()) {
                         <div class="col-md-6">
                             <label class="form-label">Occupation</label>
                             <input type="text" name="occupation" class="form-control" placeholder="e.g. Student, Teacher, Engineer" value="<?php echo htmlspecialchars($patient['occupation'] ?? ''); ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Registration Date</label>
+                            <input type="date" name="registered_date" class="form-control"
+                                   max="<?php echo date('Y-m-d'); ?>" min="1990-01-01"
+                                   value="<?php echo htmlspecialchars(substr((string)($patient['created_at'] ?? ''), 0, 10)); ?>">
+                            <div class="form-text">The date shown under “Registered” in the patient list.</div>
                         </div>
                         <div class="col-md-5">
                             <?php
