@@ -32,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $med_notes       = trim($_POST['medical_notes'] ?? '');
     $ill_history     = trim($_POST['illness_history'] ?? '');
     $treatment_plan  = trim($_POST['treatment_plan'] ?? '');
+    // Registration date: lets staff enter an OLD paper record under its original date.
+    // Blank = today. Future dates are not allowed.
+    $reg_date        = trim($_POST['registered_date'] ?? '');
+    if ($reg_date === '') $reg_date = date('Y-m-d');
 
     $missing = [];
     if (!$first_name)  $missing[] = 'First Name';
@@ -58,8 +62,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (strlen($med_notes)      > 2000)$length_errors[] = 'Medical Notes (max 2000 chars)';
     if (strlen($treatment_plan) > 2000)$length_errors[] = 'Treatment Plan (max 2000 chars)';
 
+    $reg_date_ok = preg_match('/^\d{4}-\d{2}-\d{2}$/', $reg_date)
+                   && checkdate((int)substr($reg_date, 5, 2), (int)substr($reg_date, 8, 2), (int)substr($reg_date, 0, 4))
+                   && $reg_date <= date('Y-m-d')
+                   && $reg_date >= '1990-01-01';
+
     if (!empty($missing)) {
         $error = 'Please fill in all required fields: ' . implode(', ', $missing) . '.';
+    } elseif (!$reg_date_ok) {
+        $error = 'Registration date must be a valid date that is not in the future.';
     } elseif (!empty($length_errors)) {
         $error = 'Field(s) exceed maximum length: ' . implode(', ', $length_errors) . '.';
     } elseif ($email && !valid_email($email)) {
@@ -74,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO patients
             (patient_code, first_name, last_name, middle_name, date_of_birth, gender, civil_status,
              address, occupation, phone, email, emergency_contact_name, emergency_contact_phone,
-             blood_type, medical_notes, illness_history, treatment_plan, registered_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+             blood_type, medical_notes, illness_history, treatment_plan, registered_by, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ");
         if (!$stmt) {
             $error = 'Database error preparing statement. Please ensure the database migration has been run.';
@@ -83,7 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute([
                 $patient_code, $first_name, $last_name, $middle_name, $dob, $gender, $civil,
                 $address, $occupation, $phone, $email, $ec_name, $ec_phone,
-                $blood, $med_notes, $ill_history, $treatment_plan, $current_user_id
+                $blood, $med_notes, $ill_history, $treatment_plan, $current_user_id,
+                $reg_date . ' ' . date('H:i:s')   // chosen date + current time (keeps entry order within a day)
             ])) {
                 $new_id = (int)$conn->lastInsertId();
                 log_action($conn, $current_user_id, $current_user_name, 'Added Patient', 'patients', $new_id, "Patient: $first_name $last_name ($patient_code)");
@@ -182,6 +194,13 @@ function old(string $key, string $default = ''): string {
                                     <option value="widowed"   <?php echo old('civil_status') === 'widowed'   ? 'selected' : ''; ?>>Widowed</option>
                                     <option value="separated" <?php echo old('civil_status') === 'separated' ? 'selected' : ''; ?>>Separated</option>
                                 </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Registration Date</label>
+                                <input type="date" name="registered_date" class="form-control"
+                                       max="<?php echo date('Y-m-d'); ?>" min="1990-01-01"
+                                       value="<?php echo old('registered_date', date('Y-m-d')); ?>">
+                                <div class="form-text" style="font-size:0.72rem;">Today for new patients. For an old paper record, pick the date the patient was first seen.</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Blood Type <span style="font-size:0.75rem;color:var(--gray-400);">(optional)</span></label>
