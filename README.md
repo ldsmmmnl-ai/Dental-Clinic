@@ -62,13 +62,11 @@ To run it in Docker instead, there are two commands: one to build the image, one
 
 ## Environment variables, in plain terms
 
-The database connection needs a host, port, database name, username, and password — the defaults already work for a standard local setup. The clinic's name and the app's base address are also configured here. There's a key for sending OTP codes by SMS, which is optional. There used to be a key for sending OTP codes by email through a service called Resend, but that's not used anymore — email now goes out through a Gmail account instead, configured directly in the database helper file.
+The database connection needs a host, port, database name, username, and password — the defaults already work for a standard local setup. The clinic's name and the app's base address are also configured here.
 
-If the SMS key isn't set up, the OTP just shows on screen instead of being texted, so the flow can still be tested without it.
+Login codes (OTP) can go out two ways. The main way is an email service called Resend, which works on cloud hosts like Railway because it uses the normal web port. The backup way is a Gmail account, which is meant for your own computer (Laragon or XAMPP) because many cloud hosts block Gmail. Both are set in the environment file only — no email address or password is typed into any code file. There is also an optional key for sending the code by SMS (Semaphore). If no SMS or email key is set, the code just shows on screen so the flow can still be tested.
 
-One thing that needs fixing soon: the Gmail address and its app password, used for sending OTP emails, are currently typed straight into that database helper file instead of being kept in the environment file. That means a real password is sitting in plain text inside a code file right now. It should be moved into the environment file, and that Gmail app password should be changed, since it's already been sitting exposed in the code.
-
-The example environment file also lists a site key and secret for something called hCaptcha — those aren't connected to anything yet, just placeholders for later.
+The environment file is never saved to version control (it is listed in .gitignore). A starter copy named `.env.example` is included — copy it to a file named `.env` and fill in your own values. Never share the real `.env` file or put it in a zip you send to other people.
 
 ---
 
