@@ -200,7 +200,14 @@ function showPageSkeleton(url) {
     document.body.style.removeProperty('overflow');
     document.body.style.removeProperty('padding-right');
 
-    main.innerHTML = _buildSkeleton(url);
+    // Keep #topbar so the header doesn't vanish and pop back in
+    // (also keep the header's <style> so the notification panel stays hidden)
+    var keep = Array.prototype.filter.call(main.children, function (el) {
+        return el.id === 'topbar' || el.tagName === 'STYLE';
+    });
+    main.innerHTML = '';
+    keep.forEach(function (el) { main.appendChild(el); });
+    main.insertAdjacentHTML('beforeend', _buildSkeleton(url));
 }
 
 // ─── PAGE INIT ────────────────────────────────────────────────────────────
@@ -458,6 +465,16 @@ function initPage() {
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('overflow');
                 document.body.style.removeProperty('padding-right');
+
+                // Swap in the destination page's own <head> <style> blocks.
+                // (They live in <head>, outside .main-content, so PJAX used to drop them.)
+                document.querySelectorAll('style[data-pjax-page]').forEach(function (el) { el.remove(); });
+                doc.head.querySelectorAll('style').forEach(function (st) {
+                    var ns = document.createElement('style');
+                    ns.setAttribute('data-pjax-page', '1');
+                    ns.textContent = st.textContent;
+                    document.head.appendChild(ns);
+                });
 
                 curMain.innerHTML = newMain.innerHTML;
                 if (doc.title) document.title = doc.title;
