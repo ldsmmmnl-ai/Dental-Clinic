@@ -49,6 +49,13 @@ $_bootstrap_icons_local = file_exists($_app_root . '/assets/css/bootstrap-icons.
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/accessibility.css">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/mobile.css">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/phone.css">
+<?php
+// ui-fixes loads LAST so it can override; ?v= makes browsers fetch the new copy after every change
+$_ui_css_v = @filemtime($_app_root . '/assets/css/ui-fixes.css') ?: 1;
+$_ui_js_v  = @filemtime($_app_root . '/assets/js/ui-fixes.js')  ?: 1;
+?>
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/ui-fixes.css?v=<?php echo $_ui_css_v; ?>">
+<script src="<?php echo BASE_URL; ?>assets/js/ui-fixes.js?v=<?php echo $_ui_js_v; ?>"></script>
 <script>
 (function () {
     var t = localStorage.getItem('theme');

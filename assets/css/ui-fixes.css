@@ -1,0 +1,170 @@
+/* =============================================================================
+   ui-fixes.css — loaded LAST (after phone.css), so it only needs to override.
+   1. Buttons that stand out from the page   2. Sans-serif headings even if the
+   display font is blocked   3. Readable small text   4. Visible sidebar scrollbar
+   5. Table cells that don't break   6. Appointment action buttons   7. Toasts
+   ============================================================================= */
+
+:root {
+    --ui-btn-bg:     #f1f6fb;
+    --ui-btn-border: #7f97b0;
+    --ui-btn-text:   #2b4259;
+    --ui-btn-hover:  #e1ecf7;
+    /* If Clash Display cannot load, fall back to the clean body font — never to a serif */
+    --font-display: 'Clash Display', 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+[data-theme="dark"] {
+    --ui-btn-bg:     #1b2c47;
+    --ui-btn-border: #5f82ab;
+    --ui-btn-text:   #d6e4f5;
+    --ui-btn-hover:  #25405f;
+}
+
+/* ── 1. BUTTONS ─────────────────────────────────────────────────────────────
+   Before: white fill + very pale grey border on a white card = invisible.
+   Now: tinted fill, a clearly coloured border (≥3:1 against the card) and a soft shadow. */
+.btn { box-shadow: 0 1px 2px rgba(20, 50, 80, 0.16); }
+.btn:hover:not(:disabled):not(.disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(20, 50, 80, 0.22); }
+.btn:active:not(:disabled):not(.disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(20, 50, 80, 0.2); }
+.btn-sm { min-height: 34px; }
+.btn:disabled, .btn.disabled { opacity: 0.55; box-shadow: none; }
+
+.btn-outline-secondary { background: var(--ui-btn-bg); border-color: var(--ui-btn-border); color: var(--ui-btn-text); }
+.btn-outline-secondary:hover { background: var(--ui-btn-hover); border-color: #4f6d8c; color: var(--gray-900); }
+
+.btn-outline-primary { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
+.btn-outline-primary:hover { background: var(--primary); border-color: var(--primary-dark); color: #fff; }
+
+.btn-outline-info { background: #e0f2fe; border-color: #0369a1; color: #075985; }
+.btn-outline-info:hover { background: #0369a1; border-color: #075985; color: #fff; }
+
+.btn-outline-success { background: var(--success-bg); border-color: var(--success); color: #065f46; }
+.btn-outline-success:hover { background: var(--success); border-color: #065f46; color: #fff; }
+
+.btn-outline-warning { background: var(--warning-bg); border-color: var(--warning); color: #92400e; }
+.btn-outline-warning:hover { background: var(--warning); border-color: #92400e; color: #fff; }
+
+.btn-outline-danger { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+.btn-outline-danger:hover { background: var(--danger); border-color: #8f2a20; color: #fff; }
+
+/* dark mode (style.css has its own dark rules with higher specificity, so repeat them here) */
+[data-theme="dark"] .btn-outline-secondary { background: var(--ui-btn-bg); border-color: var(--ui-btn-border) !important; color: var(--ui-btn-text) !important; }
+[data-theme="dark"] .btn-outline-secondary:hover { background: var(--ui-btn-hover); color: #fff !important; }
+[data-theme="dark"] .btn-outline-primary { background: rgba(20, 168, 168, 0.14); border-color: #14a8a8 !important; color: #7fe3e3 !important; }
+[data-theme="dark"] .btn-outline-primary:hover { background: #14a8a8; color: #04292a !important; }
+[data-theme="dark"] .btn-outline-info { background: rgba(14, 165, 233, 0.14); border-color: #38bdf8 !important; color: #7dd3fc !important; }
+[data-theme="dark"] .btn-outline-info:hover { background: #38bdf8; color: #04202e !important; }
+[data-theme="dark"] .btn-outline-success { background: rgba(16, 185, 129, 0.14); border-color: #34d399 !important; color: #6ee7b7 !important; }
+[data-theme="dark"] .btn-outline-success:hover { background: #34d399; color: #04281c !important; }
+[data-theme="dark"] .btn-outline-warning { background: rgba(245, 158, 11, 0.14); border-color: #fbbf24 !important; color: #fcd34d !important; }
+[data-theme="dark"] .btn-outline-warning:hover { background: #fbbf24; color: #2e1d02 !important; }
+[data-theme="dark"] .btn-outline-danger { background: rgba(239, 68, 68, 0.14); border-color: #f87171 !important; color: #fca5a5 !important; }
+[data-theme="dark"] .btn-outline-danger:hover { background: #f87171; color: #2e0606 !important; }
+
+/* Inline-styled buttons / links elsewhere in the system (patient profile, calendar, drawers…):
+   give their pale borders a colour you can actually see. */
+button[style*="solid var(--gray-200)"], a[style*="solid var(--gray-200)"],
+button[style*="solid var(--gray-300)"], a[style*="solid var(--gray-300)"] { border-color: var(--ui-btn-border) !important; }
+button[style*="solid var(--blue-200)"], a[style*="solid var(--blue-200)"],
+button[style*="solid var(--success-border)"], a[style*="solid var(--success-border)"],
+button[style*="solid var(--warning-border)"], a[style*="solid var(--warning-border)"],
+button[style*="solid var(--danger-border)"], a[style*="solid var(--danger-border)"],
+button[style*="solid var(--info-border)"], a[style*="solid var(--info-border)"] { border-color: currentColor !important; }
+button[style*="border:1.5px solid"], a[style*="border:1.5px solid"],
+button[style*="border: 1.5px solid"], a[style*="border: 1.5px solid"] { box-shadow: 0 1px 2px rgba(20, 50, 80, 0.16); }
+
+/* ── 2/3. TEXT SIZE ─────────────────────────────────────────────────────────
+   Anything written inline at 0.5–0.69rem (8–11px) is raised to a readable 0.72rem (≈11.5px). */
+[style*="font-size:0.5"], [style*="font-size: 0.5"],
+[style*="font-size:0.6"], [style*="font-size: 0.6"] { font-size: 0.72rem !important; }
+
+/* Placeholders were ~2.5:1 — now readable */
+::placeholder { color: #657d95 !important; opacity: 1 !important; }
+[data-theme="dark"] ::placeholder { color: #8aa3bd !important; }
+
+/* ── 4. SIDEBAR: scrollbar you can actually see ─────────────────────────── */
+.sidebar-nav {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.45) rgba(255, 255, 255, 0.07);
+}
+
+/* ── 5. TABLE CELLS THAT SHOULD NOT BREAK ───────────────────────────────── */
+td[data-label="Code"], td[data-label="Date & Time"], td[data-label="Date"], td[data-label="Bill Code"] { white-space: nowrap; }
+
+/* ── 6. APPOINTMENT ACTION BUTTONS (class-based, so dark mode works) ────── */
+.act-cell { padding: 13px 16px; min-width: 330px; white-space: nowrap; }
+.act-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.act-primary, .act-icons { display: flex; align-items: center; gap: 6px; }
+
+.act-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    min-height: 34px; padding: 6px 13px; border-radius: 8px;
+    font-family: inherit; font-size: 0.8rem; font-weight: 700; line-height: 1;
+    border: 1.5px solid transparent; text-decoration: none; cursor: pointer; white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(20, 50, 80, 0.16);
+    transition: background 0.12s, color 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+.act-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(20, 50, 80, 0.22); text-decoration: none; }
+.act-btn:focus-visible { outline: 3px solid var(--primary-light, #14a8a8); outline-offset: 2px; }
+
+/* labelled buttons */
+.act-solid-green { background: linear-gradient(135deg, var(--success), var(--success-light)); color: #fff; border-color: #065f46; }
+.act-solid-green:hover { color: #fff; filter: brightness(1.06); }
+.act-soft-green  { background: var(--success-bg); color: #065f46; border-color: var(--success); }
+.act-soft-green:hover { background: var(--success); color: #fff; }
+.act-soft-amber  { background: var(--warning-bg); color: #92400e; border-color: var(--warning); }
+.act-soft-amber:hover { background: var(--warning); color: #fff; }
+.act-soft-blue   { background: var(--primary-bg); color: var(--primary-dark); border-color: var(--primary); }
+.act-soft-blue:hover { background: var(--primary); color: #fff; }
+
+/* icon-only buttons (square) */
+.act-icon { width: 34px; padding: 0; font-size: 0.95rem; }
+.act-icon-gray { background: var(--ui-btn-bg); color: var(--ui-btn-text); border-color: var(--ui-btn-border); }
+.act-icon-gray:hover { background: var(--ui-btn-hover); color: var(--gray-900); }
+.act-icon-blue { background: var(--primary-bg); color: var(--primary-dark); border-color: var(--primary); }
+.act-icon-blue:hover { background: var(--primary); color: #fff; }
+.act-icon-red  { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.act-icon-red:hover { background: var(--danger); color: #fff; }
+
+[data-theme="dark"] .act-soft-green { background: rgba(16, 185, 129, 0.14); color: #6ee7b7; border-color: #34d399; }
+[data-theme="dark"] .act-soft-green:hover { background: #34d399; color: #04281c; }
+[data-theme="dark"] .act-soft-amber { background: rgba(245, 158, 11, 0.14); color: #fcd34d; border-color: #fbbf24; }
+[data-theme="dark"] .act-soft-amber:hover { background: #fbbf24; color: #2e1d02; }
+[data-theme="dark"] .act-soft-blue, [data-theme="dark"] .act-icon-blue { background: rgba(20, 168, 168, 0.14); color: #7fe3e3; border-color: #14a8a8; }
+[data-theme="dark"] .act-soft-blue:hover, [data-theme="dark"] .act-icon-blue:hover { background: #14a8a8; color: #04292a; }
+[data-theme="dark"] .act-icon-red { background: rgba(239, 68, 68, 0.14); color: #fca5a5; border-color: #f87171; }
+[data-theme="dark"] .act-icon-red:hover { background: #f87171; color: #2e0606; }
+
+/* phones: let the action row wrap instead of forcing a wide cell */
+@media (max-width: 767px) {
+    .act-cell { min-width: 0; white-space: normal; }
+    .act-row { flex-wrap: wrap; justify-content: flex-start; }
+}
+
+/* ── 7. TOASTS (replace the browser's plain alert() pop-ups) ────────────── */
+#uiToastHost {
+    position: fixed; top: 78px; right: 18px; z-index: 20000;
+    display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 28px));
+    pointer-events: none;
+}
+.ui-toast {
+    pointer-events: auto; display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--info);
+    background: var(--info-bg); color: #0c4a6e; font-size: 0.88rem; font-weight: 600; line-height: 1.4;
+    box-shadow: 0 8px 24px rgba(15, 40, 60, 0.22);
+    animation: uiToastIn 0.18s ease-out;
+}
+.ui-toast i { font-size: 1.05rem; margin-top: 1px; }
+.ui-toast .ui-toast-msg { flex: 1; word-break: break-word; }
+.ui-toast .ui-toast-x {
+    border: 0; background: transparent; color: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer;
+    padding: 0 2px; opacity: 0.7;
+}
+.ui-toast .ui-toast-x:hover { opacity: 1; }
+.ui-toast-error   { background: var(--danger-bg);  border-color: var(--danger);  color: #7f1d1d; }
+.ui-toast-success { background: var(--success-bg); border-color: var(--success); color: #065f46; }
+[data-theme="dark"] .ui-toast         { background: #11283a; border-color: #38bdf8; color: #bae6fd; }
+[data-theme="dark"] .ui-toast-error   { background: #331616; border-color: #f87171; color: #fecaca; }
+[data-theme="dark"] .ui-toast-success { background: #0f2e25; border-color: #34d399; color: #a7f3d0; }
+@keyframes uiToastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ui-toast, .btn, .act-btn { animation: none; transition: none; } }

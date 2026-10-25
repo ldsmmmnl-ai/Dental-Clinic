@@ -128,8 +128,8 @@ header('X-Frame-Options: SAMEORIGIN');
 header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header("Content-Security-Policy: default-src 'self'; " .
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " .
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://api.fontshare.com; " .
-    "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com https://api.fontshare.com; " .
+    "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com https://api.fontshare.com https://cdn.fontshare.com; " .
     "img-src 'self' data: blob:; " .
     "connect-src 'self';");
