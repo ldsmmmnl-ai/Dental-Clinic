@@ -180,6 +180,11 @@ if ($action === 'get_appointment') {
         echo json_encode(['status' => 'error', 'message' => 'Appointment not found.']);
         exit();
     }
+    // every service of the appointment (so the Reschedule drawer can tick them all)
+    $appt['service_ids'] = array_values(array_filter(array_map(
+        fn($r) => (int)$r['service_id'],
+        ms_get($conn, 'appointment_services', 'appointment_id', (int)$appt['id'], (int)($appt['service_id'] ?? 0) ?: null)
+    )));
     echo json_encode(['status' => 'ok', 'appointment' => $appt]);
     exit();
 }
@@ -197,7 +202,10 @@ if ($action === 'reschedule') {
     $id               = intval($body['id'] ?? 0);
     $new_date         = trim($body['appointment_date'] ?? '');
     $new_time         = trim($body['appointment_time'] ?? '');
-    $new_service_id   = intval($body['service_id'] ?? 0) ?: null;
+    // One or MANY services. None ticked = keep the current services.
+    $new_service_ids  = ms_clean_ids($body['service_ids'] ?? []);
+    if (!$new_service_ids && !empty($body['service_id'])) $new_service_ids = ms_clean_ids([$body['service_id']]);
+    $new_service_id   = $new_service_ids[0] ?? null;
     $new_doctor_id    = intval($body['doctor_id'] ?? 0) ?: null;
     $new_notes        = trim($body['notes'] ?? '');
 
@@ -227,6 +235,8 @@ if ($action === 'reschedule') {
         exit();
     }
 
+    if (!$new_service_ids) $new_service_id = $current['service_id'] ?: null;   // nothing ticked → unchanged
+
     // Don't allow rescheduling completed/cancelled appointments
     if (in_array($current['status'], ['completed', 'cancelled'])) {
         http_response_code(422);
@@ -252,9 +262,12 @@ if ($action === 'reschedule') {
         WHERE id = ?
     ");
     if ($stmt->execute([$new_date, $new_time, $new_service_id, $new_doctor_id, $new_notes, $id])) {
-        // Keep the multi-service list in step: only reset it when the service was actually changed
-        if ((int)($current['service_id'] ?? 0) !== (int)$new_service_id) {
-            ms_save($conn, 'appointment_services', 'appointment_id', $id, $new_service_id ? [$new_service_id] : []);
+        // Keep the multi-service list in step: only rewrite it when the ticked services really changed
+        if ($new_service_ids) {
+            $old_rows = ms_get($conn, 'appointment_services', 'appointment_id', $id, (int)($current['service_id'] ?? 0) ?: null);
+            $old_ids  = array_map(fn($r) => (int)$r['service_id'], $old_rows);
+            $a1 = $old_ids; $a2 = $new_service_ids; sort($a1); sort($a2);
+            if ($a1 !== $a2) ms_save($conn, 'appointment_services', 'appointment_id', $id, $new_service_ids);
         }
         $old_date = date('M d, Y', strtotime($current['appointment_date']));
         $new_date_fmt = date('M d, Y', strtotime($new_date));

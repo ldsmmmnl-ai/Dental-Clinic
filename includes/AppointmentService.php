@@ -66,6 +66,9 @@ class AppointmentService
         $params[] = $limit;
         $params[] = $offset;
 
+        // ORDER BY groups: 0 = upcoming pending/confirmed (soonest on top),
+        //                  1 = pending/confirmed whose date already passed (still open),
+        //                  2 = completed / cancelled / no-show at the bottom (most recent first).
         $stmt = $this->conn->prepare("
             SELECT
                 a.*,
@@ -89,7 +92,15 @@ class AppointmentService
                 ) latest ON b1.id = latest.max_id
             ) b ON b.appointment_id = a.id
             $where
-            ORDER BY a.appointment_date DESC, a.appointment_time ASC
+            ORDER BY
+                CASE
+                    WHEN a.status IN ('pending','confirmed') AND a.appointment_date >= CURDATE() THEN 0
+                    WHEN a.status IN ('pending','confirmed') THEN 1
+                    ELSE 2
+                END ASC,
+                CASE WHEN a.status IN ('pending','confirmed') AND a.appointment_date >= CURDATE() THEN a.appointment_date END ASC,
+                CASE WHEN a.status IN ('pending','confirmed') AND a.appointment_date >= CURDATE() THEN a.appointment_time END ASC,
+                a.appointment_date DESC, a.appointment_time DESC, a.id DESC
             LIMIT ? OFFSET ?
         ");
         $stmt->execute($params);

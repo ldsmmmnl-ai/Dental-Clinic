@@ -183,6 +183,13 @@ function bill_status_for(float $due, float $paid): string {
 
 // Tooth-chart marks (the X / P letters typed into the chart boxes).
 // Stored as JSON like {"16":"X","46":"P"}; keys are FDI tooth codes.
+// The doctor's chart codes are written in mixed case (Am, Co, Ec, Im, Pe, Jc, Br); single-character
+// codes (0, X, F) have no case. Everything else is upper-cased, as before.
+function normalize_mark_case(string $v): string {
+    $v = strtoupper($v);
+    $map = ['AM' => 'Am', 'CO' => 'Co', 'EC' => 'Ec', 'IM' => 'Im', 'PE' => 'Pe', 'JC' => 'Jc', 'BR' => 'Br'];
+    return $map[$v] ?? $v;
+}
 function sanitize_tooth_marks($raw): ?string {
     if (!is_string($raw) || trim($raw) === '') return null;
     $data = json_decode($raw, true);
@@ -195,8 +202,8 @@ function sanitize_tooth_marks($raw): ?string {
     foreach ($data as $k => $v) {
         $k = (string)$k;
         if (!isset($valid[$k]) || !is_string($v)) continue;
-        $v = strtoupper(preg_replace('/[^A-Za-z0-9+\-\/.]/', '', $v));
-        $v = substr($v, 0, 3);
+        $v = preg_replace('/[^A-Za-z0-9+\-\/.]/', '', $v);
+        $v = normalize_mark_case(substr($v, 0, 3));
         if ($v !== '') $out[$k] = $v;
     }
     return $out ? json_encode($out) : null;

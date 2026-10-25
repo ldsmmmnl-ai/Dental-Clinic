@@ -214,7 +214,6 @@ $services = $conn->query(
                             <th>Service Name</th>
                             <th>Description</th>
                             <th>Duration</th>
-                            <th>Price (₱)</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -222,7 +221,7 @@ $services = $conn->query(
                     <tbody>
                         <?php if (empty($services)): ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-4 d-block mb-2"></i>No services found. Click "+ Add New Service" to get started.
                             </td>
                         </tr>
@@ -240,9 +239,6 @@ $services = $conn->query(
                                 <span class="badge bg-light text-dark border">
                                     <i class="bi bi-clock"></i> <?php echo (int)$s['duration_minutes']; ?> min
                                 </span>
-                            </td>
-                            <td data-label="Price">
-                                <strong>₱<?php echo number_format($s['price'], 2); ?></strong>
                             </td>
                             <td data-label="Status">
                                 <span id="svc-badge-<?php echo $s['id']; ?>" class="badge <?php echo $s['is_active'] ? 'bg-success' : 'bg-secondary'; ?>">
@@ -319,14 +315,8 @@ $services = $conn->query(
                             <input type="number" name="duration_custom" id="addCustomDuration"
                                    class="form-control mt-2 d-none" min="5" max="480" placeholder="Enter minutes">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Standard Price (₱) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">₱</span>
-                                <input type="number" name="price" class="form-control" min="0" step="0.01"
-                                       value="0.00" required>
-                            </div>
-                        </div>
+                        <!-- Doctor: service names only, no prices. The fee is typed in on each bill. -->
+                        <input type="hidden" name="price" value="0.00">
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
@@ -380,14 +370,8 @@ $services = $conn->query(
                             <input type="number" name="duration_custom" id="editCustomDuration"
                                    class="form-control mt-2 d-none" min="5" max="480" placeholder="Enter minutes">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label fw-semibold">Standard Price (₱) <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">₱</span>
-                                <input type="number" name="price" id="editPrice" class="form-control"
-                                       min="0" step="0.01" required>
-                            </div>
-                        </div>
+                        <!-- Doctor: no prices shown. The stored value is simply kept as it is. -->
+                        <input type="hidden" name="price" id="editPrice" value="0.00">
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">

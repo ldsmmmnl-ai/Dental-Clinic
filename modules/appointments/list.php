@@ -600,17 +600,14 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label" style="font-size:0.8rem;font-weight:700;">Service</label>
-                        <select id="rs_service" class="form-select">
-                            <option value="">— No change —</option>
-                            <?php
-                            $svc_list = sc_get('svc_walkin') ?? sc_set('svc_walkin',
-                                $conn->query("SELECT id, service_name, price FROM services WHERE is_active = TRUE ORDER BY service_name")
-                                     ->fetchAll(PDO::FETCH_ASSOC), 300);
-                            foreach ($svc_list as $sv): ?>
-                            <option value="<?php echo $sv['id']; ?>"><?php echo e($sv['service_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label" style="font-size:0.8rem;font-weight:700;">Services</label>
+                        <?php
+                        $svc_list = sc_get('svc_walkin') ?? sc_set('svc_walkin',
+                            $conn->query("SELECT id, service_name, price FROM services WHERE is_active = TRUE ORDER BY service_name ASC")
+                                 ->fetchAll(PDO::FETCH_ASSOC), 300);
+                        echo ms_checkbox_list($svc_list, [], ['prefix' => 'rs_svc']);
+                        ?>
+                        <div style="font-size:0.7rem;color:var(--gray-400);margin-top:4px;">Tick every service for this appointment. Leave all unticked to keep the current services.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" style="font-size:0.8rem;font-weight:700;">Doctor</label>
@@ -677,8 +674,12 @@ function openRescheduleModal(apptId) {
             document.getElementById('rs_date').value  = a.appointment_date || '';
             document.getElementById('rs_notes').value = a.notes || '';
             // Service
-            var svcSel = document.getElementById('rs_service');
-            svcSel.value = a.service_id || '';
+            // Services (tick every service this appointment has)
+            var svcIds = (a.service_ids && a.service_ids.length ? a.service_ids : (a.service_id ? [a.service_id] : [])).map(String);
+            document.querySelectorAll('.ms-box[data-prefix="rs_svc"] input[type=checkbox]').forEach(function (cb) {
+                cb.checked = svcIds.indexOf(String(cb.value)) !== -1;
+                if (typeof msRecalc === 'function') msRecalc(cb);
+            });
             // Doctor
             var docSel = document.getElementById('rs_doctor');
             docSel.value = a.doctor_id || '';
@@ -745,7 +746,9 @@ function doReschedule() {
     var id      = document.getElementById('rs_appt_id').value;
     var date    = document.getElementById('rs_date').value;
     var time    = document.getElementById('rs_time').value;
-    var service = document.getElementById('rs_service').value;
+    var serviceIds = Array.prototype.map.call(
+        document.querySelectorAll('.ms-box[data-prefix="rs_svc"] input[type=checkbox]:checked'),
+        function (cb) { return parseInt(cb.value); });
     var doctor  = document.getElementById('rs_doctor').value;
     var notes   = document.getElementById('rs_notes').value;
     var btn     = document.getElementById('rsSubmitBtn');
@@ -764,7 +767,7 @@ function doReschedule() {
             id: parseInt(id),
             appointment_date: date,
             appointment_time: time,
-            service_id: service ? parseInt(service) : null,
+            service_ids: serviceIds,
             doctor_id:  doctor  ? parseInt(doctor)  : null,
             notes: notes,
             _csrf: getCsrfToken(),

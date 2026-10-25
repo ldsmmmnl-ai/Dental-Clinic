@@ -9,7 +9,7 @@ $id = intval($_GET['id'] ?? 0);
 if (!$id) { header('Location: ../treatments/list.php'); exit(); }
 
 $stmt_record = $conn->prepare("
-    SELECT dr.*, s.service_name,
+    SELECT dr.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code, p.date_of_birth, p.gender, p.phone, p.address, p.occupation, p.civil_status,
            d.full_name as doctor_name,

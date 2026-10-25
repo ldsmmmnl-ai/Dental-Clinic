@@ -36,7 +36,9 @@ if ($patient_id) {
     $params[] = $patient_id;
 }
 if ($service_f) {
-    $where  .= " AND dr.service_id = ?";
+    // match the visit if the service is ANY of its services (not only the first)
+    $where  .= " AND (dr.service_id = ? OR EXISTS (SELECT 1 FROM dental_record_services drs WHERE drs.dental_record_id = dr.id AND drs.service_id = ?))";
+    $params[] = $service_f;
     $params[] = $service_f;
 }
 if ($date_from_clean) {
@@ -80,7 +82,7 @@ if ($date_to_clean)   $filter_parts[] = 'date_to='    . urlencode($date_to_clean
 $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
 
 $list_stmt = $conn->prepare("
-    SELECT dr.*, s.service_name,
+    SELECT dr.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code,
            CONCAT(u.full_name) as recorded_by_name,

@@ -10,7 +10,7 @@ if (!$id) { header('Location: ../treatments/list.php'); exit(); }
 
 // Main record + patient full info
 $stmt = $conn->prepare("
-    SELECT dr.*, s.service_name,
+    SELECT dr.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name,
            p.id as patient_id,
            CONCAT(p.last_name,', ',p.first_name,
                   IF(COALESCE(NULLIF(TRIM(p.middle_name),''), '') <> '',

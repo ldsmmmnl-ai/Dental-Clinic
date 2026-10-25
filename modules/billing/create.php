@@ -16,6 +16,7 @@ $error      = '';
 $pre_patient_id     = intval($_GET['patient_id'] ?? 0);
 $pre_appt_id        = intval($_GET['appointment_id'] ?? 0);
 $pre_from_treatment = isset($_GET['from_treatment']);
+$pre_record_id      = intval($_GET['record_id'] ?? 0);   // dental record just saved (walk-in with no appointment)
 
 $patients = sc_get('pat_bill') ?? sc_set('pat_bill', $conn->query(
     "SELECT id, patient_code, first_name, last_name FROM patients WHERE is_active = TRUE ORDER BY last_name ASC"
@@ -55,6 +56,12 @@ if ($pre_appt_id) {
         $pre_service_ids = array_values(array_filter(array_map(fn($r) => (int)$r['service_id'], $pre_rows)));
         if ($pre_rows) $pre_service_price = array_sum(array_map(fn($r) => (float)$r['price'], $pre_rows));
     }
+}
+
+// Coming from a saved dental record with no appointment services → pre-tick that record's services
+if (!$pre_service_ids && $pre_record_id) {
+    $rec_rows = ms_get($conn, 'dental_record_services', 'dental_record_id', $pre_record_id, null);
+    $pre_service_ids = array_values(array_filter(array_map(fn($r) => (int)$r['service_id'], $rec_rows)));
 }
 
 // Get appointments for patient (populated via JS when not in treatment flow)

@@ -12,7 +12,7 @@ if (!$id) { header('Location: ../patients/list.php'); exit(); }
 
 $stmt = $conn->prepare("
     SELECT dr.*,
-           s.service_name,
+           COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name,
            CONCAT(p.first_name,' ',p.last_name) as patient_name,
            p.patient_code, p.id as pid,
            p.date_of_birth, p.gender, p.blood_type,
@@ -38,7 +38,7 @@ if (!$r) { header('Location: ../patients/list.php'); exit(); }
 // Fetch other dental records for this patient — must be done here before HTML output
 $other_stmt = $conn->prepare("
     SELECT dr.id, dr.visit_date, dr.tooth_number, dr.tooth_status, dr.treatment_done,
-           s.service_name
+           COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name
     FROM dental_records dr
     LEFT JOIN services s ON dr.service_id = s.id
     WHERE dr.patient_id = ? AND dr.id != ?

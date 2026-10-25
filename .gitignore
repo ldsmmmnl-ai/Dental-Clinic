@@ -1,3 +1,5 @@
-@"
 .env
 logs/*.log
+uploads/photos/
+uploads/xrays/
+uploads/profiles/

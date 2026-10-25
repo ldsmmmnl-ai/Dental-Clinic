@@ -17,8 +17,8 @@ function ms_ensure_tables(PDO $conn): void
         // One light check per request; only creates what is missing.
         $have = (int)$conn->query("SELECT COUNT(*) FROM information_schema.tables
                                    WHERE table_schema = DATABASE()
-                                     AND table_name IN ('bill_services','appointment_services','bill_payments')")->fetchColumn();
-        if ($have < 3) {
+                                     AND table_name IN ('bill_services','appointment_services','bill_payments','dental_record_services')")->fetchColumn();
+        if ($have < 4) {
             $conn->exec("CREATE TABLE IF NOT EXISTS `bill_services` (
                 `id`           INT AUTO_INCREMENT PRIMARY KEY,
                 `bill_id`      INT           NOT NULL,
@@ -50,6 +50,30 @@ function ms_ensure_tables(PDO $conn): void
                 KEY `idx_bp_bill` (`bill_id`, `paid_at`),
                 CONSTRAINT `fk_bp_bill` FOREIGN KEY (`bill_id`) REFERENCES `bills`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+            // Services of one dental record / visit (a visit can have MANY services).
+            // Own try/catch: if the foreign key cannot be made, fall back to a plain table.
+            try {
+                $conn->exec("CREATE TABLE IF NOT EXISTS `dental_record_services` (
+                    `id`               INT AUTO_INCREMENT PRIMARY KEY,
+                    `dental_record_id` INT           NOT NULL,
+                    `service_id`       INT           DEFAULT NULL,
+                    `service_name`     VARCHAR(150)  NOT NULL,
+                    `price`            DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                    KEY `idx_drs_record` (`dental_record_id`),
+                    CONSTRAINT `fk_drs_record` FOREIGN KEY (`dental_record_id`) REFERENCES `dental_records`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+            } catch (Throwable $e_drs) {
+                try {
+                    $conn->exec("CREATE TABLE IF NOT EXISTS `dental_record_services` (
+                        `id`               INT AUTO_INCREMENT PRIMARY KEY,
+                        `dental_record_id` INT           NOT NULL,
+                        `service_id`       INT           DEFAULT NULL,
+                        `service_name`     VARCHAR(150)  NOT NULL,
+                        `price`            DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        KEY `idx_drs_record` (`dental_record_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+                } catch (Throwable $e_drs2) { error_log('[MULTI-SERVICE] dental_record_services: ' . $e_drs2->getMessage()); }
+            }
         }
         ms_migrate_service_list($conn);
         ms_ensure_payment_columns($conn);
@@ -292,8 +316,8 @@ function ms_fetch_services(PDO $conn, array $ids): array
 /** Replace the service rows of one appointment / bill. Returns the saved services. */
 function ms_save(PDO $conn, string $table, string $fk, int $fk_id, array $ids): array
 {
-    if (!in_array($table, ['bill_services', 'appointment_services'], true)) return [];
-    if (!in_array($fk, ['bill_id', 'appointment_id'], true)) return [];
+    if (!in_array($table, ['bill_services', 'appointment_services', 'dental_record_services'], true)) return [];
+    if (!in_array($fk, ['bill_id', 'appointment_id', 'dental_record_id'], true)) return [];
     $rows = ms_fetch_services($conn, $ids);
     $conn->prepare("DELETE FROM `$table` WHERE `$fk` = ?")->execute([$fk_id]);
     $ins = $conn->prepare("INSERT INTO `$table` (`$fk`, service_id, service_name, price) VALUES (?,?,?,?)");
@@ -304,8 +328,8 @@ function ms_save(PDO $conn, string $table, string $fk, int $fk_id, array $ids): 
 /** Service rows of one appointment / bill. Falls back to the old single service_id. */
 function ms_get(PDO $conn, string $table, string $fk, int $fk_id, ?int $fallback_service_id = null): array
 {
-    if (!in_array($table, ['bill_services', 'appointment_services'], true)) return [];
-    if (!in_array($fk, ['bill_id', 'appointment_id'], true)) return [];
+    if (!in_array($table, ['bill_services', 'appointment_services', 'dental_record_services'], true)) return [];
+    if (!in_array($fk, ['bill_id', 'appointment_id', 'dental_record_id'], true)) return [];
     try {
         $st = $conn->prepare("SELECT service_id, service_name, price FROM `$table` WHERE `$fk` = ? ORDER BY id ASC");
         $st->execute([$fk_id]);
@@ -388,6 +412,7 @@ HTML;
     $count = 0; $total = 0.0;
     $h .= '<div class="ms-box" data-prefix="' . $prefix . '"' . ($target ? ' data-target="' . htmlspecialchars($target) . '"' : '') . '>';
     foreach ($services as $s) {
+        $s['price'] = (float)($s['price'] ?? 0);
         $on = in_array((int)$s['id'], $selected_ids, true);
         if ($on) { $count++; $total += (float)$s['price']; }
         $h .= '<label class="ms-item' . ($on ? ' ms-on' : '') . '">'

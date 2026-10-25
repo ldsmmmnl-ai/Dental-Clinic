@@ -111,6 +111,7 @@ if (!function_exists('tc_box')) {
                . ' spellcheck="false" readonly tabindex="-1" aria-label="' . htmlspecialchars($title) . ' mark"'
                . ' value="' . htmlspecialchars($mark) . '" placeholder="' . ($active ? '✓' : '') . '">';
         } else {
+            if ($mark !== '' && function_exists('normalize_mark_case')) $mark = normalize_mark_case($mark);
             echo htmlspecialchars($mark !== '' ? $mark : ($active ? '✓' : ''));
         }
         echo '</span>' . "\n";
@@ -151,7 +152,7 @@ if (!function_exists('tc_box')) {
     width: 100%; height: 100%; min-width: 0; padding: 0; margin: 0;
     border: 0; outline: 0; background: transparent; box-shadow: none;
     text-align: center; font: inherit; font-size: 0.8rem; font-weight: 800;
-    color: inherit; text-transform: uppercase; cursor: inherit;
+    color: inherit; cursor: inherit;
     pointer-events: none;           /* tag mode: the click goes to the box */
     caret-color: #2563EB;
 }
@@ -194,7 +195,7 @@ if (!function_exists('tc_box')) {
 <?php if ($is_input): ?>
   <div class="tc-modebar-<?= $uid ?>">
     <button type="button" class="active" data-mode="tag">✓ Tag teeth</button>
-    <button type="button" data-mode="write">✎ Write marks (X, P…)</button>
+    <button type="button" data-mode="write">✎ Write marks (0, X, F, Am…)</button>
   </div>
 <?php endif; ?>
 
@@ -237,17 +238,24 @@ foreach ($lower_prim as $i => $t) {
 <?php if ($is_input): ?>
   <input type="hidden" name="<?= htmlspecialchars($tc_marks_name) ?>" id="tcMarks_<?= $uid ?>"
          value="<?= htmlspecialchars($chart_marks ? json_encode($chart_marks) : '') ?>">
-  <div class="tc-hint-<?= $uid ?>" id="tcHint_<?= $uid ?>">Tap the box above the number for the upper tooth, below the number for the lower tooth.</div>
+  <div class="tc-hint-<?= $uid ?>" id="tcHint_<?= $uid ?>">Tap the box above the number for the upper tooth, below the number for the lower tooth. A tagged tooth prints as ✓ (sound tooth).</div>
 <?php endif; ?>
 
-<?php if ($is_input && !$tc_hide_legend): ?>
-  <div class="tc-legend" id="tcLegend_<?= $uid ?>">
-    <?php foreach ($status_colors as $st => $c): ?>
-    <div class="tc-legend-item" data-status="<?= $st ?>" data-uid="<?= $uid ?>">
-        <span class="tc-legend-swatch" style="background:<?= $c['bg'] ?>;border:1px solid <?= $c['border'] ?>;"></span>
-        <?= ucfirst($st === 'rootcanal' ? 'Root Canal' : $st) ?>
-    </div>
-    <?php endforeach; ?>
+<?php if ($is_input): ?>
+  <!-- The doctor's chart legend (same codes as the printed record) -->
+  <div id="tcDocLegend_<?= $uid ?>" style="margin-top:10px;padding:7px 10px;border:1px solid var(--gray-200,#e2e8f0);border-radius:8px;background:var(--white,#fff);font-size:0.68rem;line-height:1.7;color:var(--gray-600,#475569);text-align:center;">
+    <b>Legends:</b>
+    <span style="white-space:nowrap;"><b>&#10003;</b> Sound tooth</span> &middot;
+    <span style="white-space:nowrap;"><b>0</b> Missing / extracted tooth</span> &middot;
+    <span style="white-space:nowrap;"><b>X</b> Indicated for extraction</span> &middot;
+    <span style="white-space:nowrap;"><b>F</b> Filled</span> &middot;
+    <span style="white-space:nowrap;"><b>Am</b> Amalgam filling</span> &middot;
+    <span style="white-space:nowrap;"><b>Co</b> Composite filling</span> &middot;
+    <span style="white-space:nowrap;"><b>Ec</b> Extensive caries</span> &middot;
+    <span style="white-space:nowrap;"><b>Im</b> Impacted tooth</span> &middot;
+    <span style="white-space:nowrap;"><b>Pe</b> Partially erupted tooth</span> &middot;
+    <span style="white-space:nowrap;"><b>Jc</b> Jacket crown</span> &middot;
+    <span style="white-space:nowrap;"><b>Br</b> Bridge</span>
   </div>
 <?php endif; ?>
 
@@ -277,8 +285,8 @@ foreach ($lower_prim as $i => $t) {
     var STATUS_COLORS = <?= json_encode($status_colors) ?>;
     var writing = false;
 
-    var HINT_TAG   = 'Tap the box above the number for the upper tooth, below the number for the lower tooth.';
-    var HINT_WRITE = 'Tap any empty box and type a mark, e.g. X for a missing tooth or P. Leave it blank to erase.';
+    var HINT_TAG   = 'Tap the box above the number for the upper tooth, below the number for the lower tooth. A tagged tooth prints as ✓ (sound tooth).';
+    var HINT_WRITE = 'Tap any empty box and type the code from the Legends below: 0 = missing/extracted, X = for extraction, F = filled, Am, Co, Ec, Im, Pe, Jc, Br. Leave it blank to erase.';
 
     function getStatus() {
         var s = document.getElementById(selId);
@@ -287,7 +295,11 @@ foreach ($lower_prim as $i => $t) {
     function sortTeeth(arr) {
         return arr.sort(function(a,b){ return parseInt(a)-parseInt(b)||a.localeCompare(b); });
     }
-    function cleanMark(v) { return (v || '').toUpperCase().replace(/[^A-Z0-9+\-\/.]/g, '').slice(0, 3); }
+    var MARK_CASE = {AM:'Am', CO:'Co', EC:'Ec', IM:'Im', PE:'Pe', JC:'Jc', BR:'Br'};   // doctor's codes keep their case
+    function cleanMark(v) {
+        var u = (v || '').toUpperCase().replace(/[^A-Z0-9+\-\/.]/g, '').slice(0, 3);
+        return MARK_CASE[u] || u;
+    }
 
     function repaintAll() {
         var st = getStatus();

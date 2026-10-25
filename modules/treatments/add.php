@@ -17,16 +17,21 @@ $pre_patient_id     = intval($_GET['patient_id'] ?? 0);
 $pre_appointment_id = intval($_GET['appointment_id'] ?? 0);
 
 $patients = sc_get('pat_treat') ?? sc_set('pat_treat', $conn->query("SELECT id, patient_code, first_name, last_name FROM patients WHERE is_active = TRUE ORDER BY last_name ASC")->fetchAll(PDO::FETCH_ASSOC), 120);
-$services = sc_get('svc_treat') ?? sc_set('svc_treat', $conn->query("SELECT id, service_name FROM services WHERE is_active = TRUE ORDER BY service_name ASC")->fetchAll(PDO::FETCH_ASSOC), 300);
+$services = sc_get('svc_treat2') ?? sc_set('svc_treat2', $conn->query("SELECT id, service_name, price FROM services WHERE is_active = TRUE ORDER BY service_name ASC")->fetchAll(PDO::FETCH_ASSOC), 300);
 
 $pre_appointment = null;
 $pre_service_id  = 0;
+$pre_service_ids = [];   // every service of the appointment (a visit can have many)
 if ($pre_appointment_id) {
     $pa_stmt = $conn->prepare("SELECT a.*, s.id as service_id, s.service_name FROM appointments a LEFT JOIN services s ON a.service_id = s.id WHERE a.id = ? LIMIT 1");
     $pa_stmt->execute([$pre_appointment_id]);
     $pre_appointment = $pa_stmt->fetch(PDO::FETCH_ASSOC);
     $pa_stmt->closeCursor();
-    if ($pre_appointment) $pre_service_id = intval($pre_appointment['service_id'] ?? 0);
+    if ($pre_appointment) {
+        $pre_service_id  = intval($pre_appointment['service_id'] ?? 0);
+        $pre_rows        = ms_get($conn, 'appointment_services', 'appointment_id', $pre_appointment_id, $pre_service_id ?: null);
+        $pre_service_ids = array_values(array_filter(array_map(fn($r) => (int)$r['service_id'], $pre_rows)));
+    }
 }
 
 $pre_patient = null;
@@ -65,7 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     validate_csrf();
     $patient_id     = intval($_POST['patient_id'] ?? 0);
     $appointment_id = intval($_POST['appointment_id'] ?? 0) ?: null;
-    $service_id     = intval($_POST['service_id'] ?? 0) ?: null;
+    // One or MANY services (tick-boxes). The first one is also kept in the old single service_id column.
+    $service_ids    = array_map(fn($r) => (int)$r['id'], ms_fetch_services($conn, ms_post_ids()));
+    $service_id     = $service_ids[0] ?? null;
     $tooth_number   = trim($_POST['tooth_number'] ?? '');
     // tooth_number is TEXT — no length limit, never truncate
     $tooth_marks    = sanitize_tooth_marks($_POST['tooth_marks'] ?? '');
@@ -126,6 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $new_id = (int)$conn->lastInsertId();
             $stmt->closeCursor();
 
+            // Save every ticked service on this dental record (name + price snapshot)
+            if ($service_ids) ms_save($conn, 'dental_record_services', 'dental_record_id', $new_id, $service_ids);
+
             if ($appointment_id) {
                 $conn->prepare("UPDATE appointments SET status = 'completed' WHERE id = ?")
                      ->execute([$appointment_id]);
@@ -155,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $billing_url = BASE_URL . "modules/billing/create.php?patient_id=$patient_id";
             if ($appointment_id) $billing_url .= "&appointment_id=$appointment_id";
-            $billing_url .= "&from_treatment=1";
+            $billing_url .= "&from_treatment=1&record_id=$new_id";
             header("Location: $billing_url");
             exit();
 
@@ -323,19 +333,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Service
+                            <label class="form-label">Services <span style="font-size:0.72rem;color:var(--gray-400);font-weight:400;">(tick all that apply)</span>
                                 <?php if ($pre_appointment_id && $pre_service_id): ?>
                                 <span style="font-size:0.72rem;color:var(--blue-500);font-weight:600;"><i class="bi bi-link-45deg"></i> Pre-filled — change if needed</span>
                                 <?php endif; ?>
                             </label>
-                            <select name="service_id" class="form-select">
-                                <option value="">Select Service</option>
-                                <?php foreach ($services as $s): ?>
-                                    <option value="<?php echo $s['id']; ?>" <?php echo $pre_service_id == $s['id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($s['service_name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <?php
+                            // Re-tick what was posted if the form is shown again after an error, else the appointment's services
+                            $sel_svc_ids = $_SERVER['REQUEST_METHOD'] === 'POST' ? ms_post_ids() : $pre_service_ids;
+                            echo ms_checkbox_list($services, $sel_svc_ids, ['prefix' => 'tr_svc']);
+                            ?>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Visit Date</label>

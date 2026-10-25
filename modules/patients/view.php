@@ -16,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record
     validate_csrf();
     $pid          = intval($_POST['patient_id'] ?? 0);
     $appt_link_id = intval($_POST['appointment_id'] ?? 0) ?: null;
-    $svc_id       = intval($_POST['service_id'] ?? 0) ?: null;
+    // One or MANY services (tick-boxes). The first is also kept in the old single service_id column.
+    $svc_ids      = array_map(fn($r) => (int)$r['id'], ms_fetch_services($conn, ms_post_ids()));
+    $svc_id       = $svc_ids[0] ?? null;
     $tooth_num    = trim($_POST['tooth_number'] ?? '');
     $tooth_marks  = sanitize_tooth_marks($_POST['tooth_marks'] ?? '');
     $tooth_st     = trim($_POST['tooth_status'] ?? 'normal');
@@ -54,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record
                 $plan, $meds, $next, $visit_date, $fee_charged, $current_user_id
             ]);
             $new_record_id = (int)$conn->lastInsertId();
+            if ($svc_ids) ms_save($conn, 'dental_record_services', 'dental_record_id', $new_record_id, $svc_ids);
 
             $inline_success = $fee_charged > 0
                 ? 'Record saved — ₱' . number_format($fee_charged, 2) . ' fee recorded.'
@@ -79,7 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_inline_dental_record
                     'Added from patient record — awaiting payment.',
                     $current_user_id, $new_record_id
                 ]);
+                $new_bill_id = (int)$conn->lastInsertId();
                 $bstmt->closeCursor();
+                if ($svc_ids && $new_bill_id) ms_save($conn, 'bill_services', 'bill_id', $new_bill_id, $svc_ids);
             }
         } catch (Exception $e) {
             $inline_error = 'Save failed: ' . $e->getMessage();
@@ -395,7 +400,7 @@ $pt_stmt->closeCursor();
 if (!$patient) { header('Location: list.php'); exit(); }
 
 $dr_stmt = $conn->prepare("
-    SELECT dr.*, s.service_name, s.price AS service_price, CONCAT(u.full_name) as recorded_by_name,
+    SELECT dr.*, COALESCE((SELECT GROUP_CONCAT(ms_x.service_name ORDER BY ms_x.id SEPARATOR ', ') FROM `dental_record_services` ms_x WHERE ms_x.`dental_record_id` = dr.id), s.service_name) AS service_name, s.price AS service_price, CONCAT(u.full_name) as recorded_by_name,
            a.appointment_code as linked_appt_code,
            a.appointment_date as linked_appt_date,
            b.id as bill_id, b.amount_due as bill_total,
@@ -890,12 +895,9 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                     <label class="inlbl"><i class="bi bi-calendar3 me-1" style="color:var(--primary);"></i>Visit Date</label>
                                     <input type="date" name="visit_date" class="form-control form-control-sm" value="<?php echo date('Y-m-d'); ?>" required style="border-radius:7px;">
                                 </div>
-                                <div class="col-sm-3 col-6">
-                                    <label class="inlbl"><i class="bi bi-grid me-1" style="color:var(--primary);"></i>Service</label>
-                                    <select name="service_id" class="form-select form-select-sm" style="border-radius:7px;">
-                                        <option value="">— select —</option>
-                                        <?php foreach ($svc_list as $sv): ?><option value="<?php echo $sv['id']; ?>"><?php echo e($sv['service_name']); ?></option><?php endforeach; ?>
-                                    </select>
+                                <div class="col-sm-6 col-12">
+                                    <label class="inlbl"><i class="bi bi-grid me-1" style="color:var(--primary);"></i>Services <span style="font-weight:400;text-transform:none;font-size:0.68rem;">(tick all that apply)</span></label>
+<?php echo ms_checkbox_list($svc_list, [], ['prefix' => 'pv_svc']); ?>
                                 </div>
                                 <div class="col-sm-3 col-6">
                                     <label class="inlbl"><i class="bi bi-cash-coin me-1" style="color:var(--primary);"></i>Treatment Price &#x20B1;</label>
