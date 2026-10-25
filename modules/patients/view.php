@@ -882,7 +882,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                         </div>
 
                         <!-- Form body -->
-                        <form method="POST" action="view.php?id=<?php echo $id; ?>" style="background:#fff;padding:22px 24px 20px;">
+                        <form method="POST" action="view.php?id=<?php echo $id; ?>" style="background:var(--white);padding:22px 24px 20px;">
                             <?php echo csrf_field(); ?>
                             <input type="hidden" name="_inline_dental_record" value="1">
                             <input type="hidden" name="patient_id" value="<?php echo $id; ?>">
