@@ -400,7 +400,7 @@ function openNotif(id, link) {
         fetch('<?php echo BASE_URL; ?>api/notifications.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'mark_read', id: id })
+            body: JSON.stringify({ action: 'mark_read', id: id, _csrf: <?php echo json_encode(generate_csrf_token()); ?> })
         });
     }
     document.getElementById('notifPanel').classList.remove('open');
@@ -411,7 +411,7 @@ function markAllRead() {
     fetch('<?php echo BASE_URL; ?>api/notifications.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'mark_all_read' })
+        body: JSON.stringify({ action: 'mark_all_read', _csrf: <?php echo json_encode(generate_csrf_token()); ?> })
     }).then(function() {
         // Clear all unread indicators
         document.querySelectorAll('.notif-item.unread').forEach(function(el) {

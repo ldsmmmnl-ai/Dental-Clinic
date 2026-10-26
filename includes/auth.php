@@ -41,6 +41,56 @@ if (empty($_SESSION['user_id'])) {
     exit();
 }
 
+// ── Step 5b: Make sure the account is STILL active ────────────────────────
+// The session only remembers who logged in. If an admin turns the account off
+// (or deletes it, or changes its role) afterwards, the old session must not keep
+// working. We ask the database, but only once every 60 seconds so pages stay fast.
+$recheck_every = 60;
+if (empty($_SESSION['acct_checked_at']) || (time() - (int)$_SESSION['acct_checked_at']) >= $recheck_every) {
+    $acct       = null;
+    $query_done = false;
+    if (isset($conn) && $conn instanceof PDO) {
+        try {
+            $acct_q = $conn->prepare("SELECT is_active, role FROM users WHERE id = ? LIMIT 1");
+            $acct_q->execute([(int) $_SESSION['user_id']]);
+            $acct       = $acct_q->fetch(PDO::FETCH_ASSOC);
+            $query_done = true;
+        } catch (Throwable $e) {
+            // Database hiccup: do not lock everyone out. We try again on the next request.
+            error_log('[AUTH] account re-check failed: ' . $e->getMessage());
+        }
+    }
+
+    if ($query_done) {
+        if (!$acct || (int) $acct['is_active'] !== 1) {
+            // Account was turned off or deleted — end this session now.
+            if (function_exists('log_action') && !empty($_SESSION['full_name'])) {
+                log_action($conn, (int) $_SESSION['user_id'], $_SESSION['full_name'],
+                    'Session Ended', 'auth', (int) $_SESSION['user_id'],
+                    'Account is no longer active');
+            }
+            $is_ajax_call = str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/')
+                         || ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest'
+                         || !empty($_POST['_ajax']);
+            session_unset();
+            session_destroy();
+            if ($is_ajax_call) {
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'error', 'message' => 'Your account is no longer active. Please log in again.']);
+                exit();
+            }
+            $base = defined('BASE_URL') ? BASE_URL : 'http://localhost/cap/';
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            header('Location: ' . $base . 'index.php?disabled=1');
+            exit();
+        }
+        // Keep the role up to date (for example, if an admin was changed to staff).
+        $_SESSION['role']            = $acct['role'];
+        $_SESSION['acct_checked_at'] = time();
+    }
+}
+
 // Stamp last_activity only after auth is confirmed — prevents unauthenticated
 // sessions from self-renewing by refreshing the timestamp on every request.
 $_SESSION['last_activity'] = time();

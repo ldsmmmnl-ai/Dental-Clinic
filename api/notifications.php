@@ -7,6 +7,8 @@ require_once '../includes/config.php';
 require_once '../includes/db.php';
 require_once '../includes/auth.php';
 
+header('Content-Type: application/json');
+
 $current_user_id = $_SESSION['user_id'] ?? 0;
 if (!$current_user_id) {
     http_response_code(401);
@@ -14,11 +16,22 @@ if (!$current_user_id) {
     exit();
 }
 
-header('Content-Type: application/json');
-
-
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $body['action'] ?? ($_GET['action'] ?? '');
+
+// Security token check. Both actions below change data, so both need it.
+// (The shared validate_csrf() only reads normal form posts, and this API receives JSON,
+//  so the token is read from the JSON body — same way api/appointments.php does it.)
+if ($action === 'mark_read' || $action === 'mark_all_read') {
+    $submitted = $body['_csrf'] ?? '';
+    $expected  = $_SESSION['csrf_token'] ?? '';
+    if (!is_string($submitted) || $submitted === '' || $expected === '' || !hash_equals($expected, $submitted)) {
+        error_log('[CSRF] Token mismatch on api/notifications.php action=' . $action . ' from IP: ' . get_client_ip());
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request token. Please refresh and try again.']);
+        exit();
+    }
+}
 
 // Mark a notification as read
 if ($action === 'mark_read') {

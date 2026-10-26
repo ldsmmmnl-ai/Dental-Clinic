@@ -1,0 +1,4 @@
+# Block execution of scripts in the logo upload folder
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

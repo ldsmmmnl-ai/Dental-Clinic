@@ -757,6 +757,9 @@ if ($view === 'otp_reset') {
     <?php if (isset($_GET['timeout'])): ?>
         <div class="alert alert-warning"><i class="bi bi-clock"></i> Your session expired. Please log in again.</div>
     <?php endif; ?>
+    <?php if (isset($_GET['disabled'])): ?>
+        <div class="alert alert-warning"><i class="bi bi-person-slash"></i> This account is no longer active. Please contact the clinic admin.</div>
+    <?php endif; ?>
     <?php
     $attempts  = $_SESSION['login_attempts']  ?? 0;
     $last_fail = $_SESSION['last_fail_time']  ?? 0;

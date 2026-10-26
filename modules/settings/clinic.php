@@ -8,6 +8,9 @@ require_once '../../includes/auth.php';
 require_once '../../includes/clinic_settings.php';
 require_admin();
 
+$current_user_id   = $current_user_id ?? ($_SESSION['user_id'] ?? 0);
+$current_user_name = $current_user_name ?? ($_SESSION['full_name'] ?? 'System');
+
 $page_title = 'Clinic Settings';
 $error      = '';
 $success    = '';
@@ -20,7 +23,7 @@ function cs_allowed_image(array $file): bool {
 }
 
 function cs_logo_dir(): string {
-    $abs = __DIR__ . '/../../assets/images/logos';
+    $abs = __DIR__ . '/../../uploads/logos';  // uploads/ is the persistent volume on Railway
     if (!is_dir($abs)) mkdir($abs, 0755, true);
     return $abs;
 }
@@ -80,6 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($name === '') {
             $error = 'Clinic name cannot be empty.';
         } else {
+            // Work out which fields really changed (for the activity log) before saving
+            $changed = [];
+            if ($name     !== $cur_name)     $changed[] = 'name';
+            if ($subtitle !== $cur_subtitle) $changed[] = 'subtitle';
+            if ($address  !== $cur_address)  $changed[] = 'address';
+            if ($phone    !== $cur_phone)    $changed[] = 'phone';
+            if ($landline !== $cur_landline) $changed[] = 'landline';
+            if ($email    !== $cur_email)    $changed[] = 'email';
+
             cs_save($conn, 'clinic_name',     $name);
             cs_save($conn, 'clinic_subtitle', $subtitle);
             cs_save($conn, 'clinic_address',  $address);
@@ -95,6 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cur_landline = $landline;
             $cur_email    = $email;
             $success      = 'Clinic information saved. All printed documents will now show the updated name.';
+            log_action($conn, $current_user_id, $current_user_name, 'Updated Clinic Info', 'settings', null,
+                $changed ? 'Changed: ' . implode(', ', $changed) : 'Saved with no changes');
         }
     }
 
@@ -119,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $fname    = 'clinic_logo_' . time() . '.' . $ext;
             $dest     = cs_logo_dir() . '/' . $fname;
-            $rel_path = 'assets/images/logos/' . $fname;
+            $rel_path = 'uploads/logos/' . $fname;
 
             // Delete old logo file if it exists
             if ($cur_logo !== '' && file_exists(__DIR__ . '/../../' . $cur_logo)) {
@@ -130,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 cs_save($conn, 'clinic_logo', $rel_path);
                 $cur_logo = $rel_path;
                 $success  = 'Logo uploaded successfully. It will now appear on all printed documents.';
+                log_action($conn, $current_user_id, $current_user_name, 'Uploaded Clinic Logo', 'settings', null, $fname);
             } else {
                 $error = 'Failed to save the logo. Check that the uploads folder is writable.';
             }
@@ -144,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cs_save($conn, 'clinic_logo', '');
         $cur_logo = '';
         $success  = 'Logo removed. Printed documents will show the default 🦷 icon.';
+        log_action($conn, $current_user_id, $current_user_name, 'Removed Clinic Logo', 'settings');
     }
 }
 
