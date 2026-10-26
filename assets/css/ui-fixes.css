@@ -168,3 +168,85 @@ td[data-label="Code"], td[data-label="Date & Time"], td[data-label="Date"], td[d
 [data-theme="dark"] .ui-toast-success { background: #0f2e25; border-color: #34d399; color: #a7f3d0; }
 @keyframes uiToastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ui-toast, .btn, .act-btn { animation: none; transition: none; } }
+
+
+/* =============================================================================
+   8. PHONE FIXES — nothing here changes the laptop view
+   ============================================================================= */
+
+/* Button rows must WRAP, never scroll sideways with buttons hidden off-screen.
+   (mobile.css turned `.d-flex.gap-2.flex-wrap` rows into a hidden sideways scroll — e.g. the
+   Mon–Sun day buttons in Doctors.) */
+@media (max-width: 768px) {
+    .d-flex.gap-2.flex-wrap, .d-flex.flex-wrap.gap-1, #dayToggles {
+        flex-wrap: wrap !important;
+        overflow-x: visible !important;
+    }
+}
+
+/* Page header (title + Edit / Book / Back buttons): wrap, and give the buttons a full-width row */
+@media (max-width: 576px) {
+    .page-header { flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .page-header > div:first-child { min-width: 0; flex: 1 1 100%; }
+    .page-header > div:not(:first-child) { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+    .page-header > div:not(:first-child) .btn { flex: 1 1 auto; justify-content: center; }
+    .page-header > .btn, .page-header > a.btn { flex: 1 1 100%; justify-content: center; }
+}
+
+/* Patient profile → "Return Visit" entry form: Date / Fee / Method were forced into 3 columns
+   (~100px each), so the fee showed "0.0" and the method list was empty. */
+@media (max-width: 576px) {
+    form [style*="grid-template-columns:1fr 1fr 1fr"]:has(input[name="visit_date"]) {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    form [style*="grid-template-columns:1fr 1fr 1fr"]:has(input[name="visit_date"]) > :first-child {
+        grid-column: 1 / -1;            /* date gets a full row; Fee + Method sit side by side */
+    }
+    form [style*="grid-template-columns:1fr 1fr 1fr"]:has(input[name="visit_date"]) .form-control,
+    form [style*="grid-template-columns:1fr 1fr 1fr"]:has(input[name="visit_date"]) .form-select {
+        min-height: 44px;
+    }
+    [id^="addVisitForm_"] { padding: 12px !important; }
+    [id^="addVisitForm_"] form > div:last-child { flex-wrap: wrap; }
+    [id^="addVisitForm_"] form > div:last-child .btn { flex: 1 1 140px; justify-content: center; min-height: 44px; }
+}
+
+/* Patient profile → record list header: date | service | ₱fee | balance | arrow were squeezed in one
+   line and the balance pill ran off the screen. Now: row 1 = date + arrow, row 2 = service, row 3 = amounts. */
+@media (max-width: 576px) {
+    .rec-toggle { flex-wrap: wrap; row-gap: 4px; padding: 12px 14px; }
+    .rec-toggle .rec-date  { order: 1; }
+    .rec-toggle .rec-arrow { order: 2; margin-left: auto; }
+    .rec-toggle .rec-svc   { order: 3; flex: 1 1 100%; line-height: 1.35; }
+    .rec-toggle > span:not(.rec-date):not(.rec-svc) { order: 4; margin-right: 0 !important; }
+}
+
+/* Tiny text-links that act as buttons ("Cancel payment", "Pay Balance", "Return Visit"…)
+   need a real finger-sized target on phones. */
+@media (max-width: 768px) {
+    button[onclick*="toggleVoidRow"] {
+        min-height: 36px; padding: 6px 12px !important; margin-top: 6px !important;
+        font-size: 0.8rem !important; text-decoration: none !important;
+        border: 1.5px solid var(--danger) !important; border-radius: 8px !important;
+        background: var(--danger-bg) !important; color: var(--danger) !important;
+    }
+    a[href*="billing/pay.php"][style*="border-radius:5px"] {
+        display: inline-flex !important; align-items: center; min-height: 36px;
+        padding: 6px 14px !important; margin: 6px 0 0 0 !important; font-size: 0.82rem !important; border-radius: 8px !important;
+    }
+    button[onclick*="toggleAddVisit"], button[onclick*="toggleRec"][class*="btn"] {
+        min-height: 36px; padding: 6px 12px !important; font-size: 0.8rem !important; border-radius: 8px !important;
+    }
+    .dropdown-toggle.btn-xs, .btn-xs { min-height: 36px; padding: 6px 12px !important; font-size: 0.8rem !important; }
+    .dropdown-item { padding: 10px 16px; }
+}
+
+/* Appointments (and other lists) shown as cards on phones: action buttons get their own full-width row */
+@media (max-width: 768px) {
+    .mobile-card-table td.act-cell[data-label]::before { display: none; }
+    .mobile-card-table td.act-cell { display: block; padding: 10px 14px; }
+    .act-cell .act-row { width: 100%; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+    .act-icon { width: 40px; min-height: 40px; }
+    .act-btn { min-height: 40px; }
+    .act-primary { flex-wrap: wrap; }
+}
