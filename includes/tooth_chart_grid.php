@@ -90,6 +90,15 @@ if (!function_exists('tc_box')) {
                     array $chart_teeth, array $chart_marks, array $status_colors,
                     bool $is_input, string $uid, string $title): void {
         $style = "grid-column:{$col};grid-row:{$row};";
+
+        // Letters (E D C B A ...) are only printed labels, like on the paper form:
+        // never clickable, never coloured, no tooltip. The empty box next to the letter is the one to use.
+        if ($kind === 'label') {
+            echo '<span class="tc-box tc-label" aria-hidden="true" style="' . $style . '">'
+               . htmlspecialchars($text) . '</span>' . "\n";
+            return;
+        }
+
         $active = false;
         if (isset($chart_teeth[$tooth])) {
             $st = $chart_teeth[$tooth];
@@ -103,9 +112,7 @@ if (!function_exists('tc_box')) {
         $cls = 'tc-box tc-' . $kind . ($is_input ? ' tc-btn' : '') . ($active ? ' tc-selected' : '');
         echo '<span class="' . $cls . '" data-tooth="' . htmlspecialchars($tooth) . '" data-kind="' . $kind . '"'
            . ' data-uid="' . $uid . '" title="' . htmlspecialchars($title) . '" style="' . $style . '">';
-        if ($kind === 'label') {
-            echo htmlspecialchars($text);
-        } elseif ($is_input) {
+        if ($is_input) {
             // typed mark lives in a tiny input; it is read-only until "Write marks" is switched on
             echo '<input type="text" class="tc-mark" maxlength="3" autocomplete="off" autocapitalize="characters"'
                . ' spellcheck="false" readonly tabindex="-1" aria-label="' . htmlspecialchars($title) . ' mark"'
@@ -142,6 +149,9 @@ if (!function_exists('tc_box')) {
 }
 .tc-paper-<?= $uid ?> .tc-num   { background: #F8FAFC; }
 .tc-paper-<?= $uid ?> .tc-label { background: #F8FAFC; }
+/* numbers and letters are labels only: nothing happens when you click or tap them */
+.tc-paper-<?= $uid ?> .tc-num,
+.tc-paper-<?= $uid ?> .tc-label { pointer-events: none; cursor: default; }
 .tc-paper-<?= $uid ?> .tc-btn   { cursor: pointer; }
 .tc-paper-<?= $uid ?> .tc-btn:hover { background: #E0F2FE; }
 .tc-paper-<?= $uid ?> .tc-selected,
@@ -159,7 +169,6 @@ if (!function_exists('tc_box')) {
 .tc-paper-<?= $uid ?> .tc-mark::placeholder { color: currentColor; opacity: 1; }
 .tc-paper-<?= $uid ?>.tc-writing .tc-mark { pointer-events: auto; cursor: text; }
 .tc-paper-<?= $uid ?>.tc-writing .tc-note { cursor: text; }
-.tc-paper-<?= $uid ?>.tc-writing .tc-label.tc-btn { cursor: default; }
 .tc-paper-<?= $uid ?>.tc-writing .tc-note:focus-within { background: #FEFCE8; box-shadow: inset 0 0 0 2px #2563EB; z-index: 2; position: relative; }
 @media (pointer: coarse) { .tc-paper-<?= $uid ?> .tc-mark:focus { font-size: 16px; } }  /* stops iPhone zoom-in */
 
@@ -170,16 +179,45 @@ if (!function_exists('tc_box')) {
     border: 1.5px solid #CBD5E1; background: #FFFFFF; color: #64748B; font-family: inherit;
 }
 .tc-modebar-<?= $uid ?> button.active { background:#DBEAFE; border-color:#3B82F6; color:#1E3A8A; }
-.tc-hint-<?= $uid ?> { text-align:center; font-size:0.66rem; color:#94A3B8; margin-top:6px; }
+.tc-hint-<?= $uid ?> { text-align:center; font-size:0.74rem; color:#64748B; margin-top:8px; }
 
 .tc-legend { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px; font-size:0.67rem; }
 .tc-legend-item { display:flex; align-items:center; gap:4px; color:#64748B; cursor:pointer; padding:2px 6px; border-radius:4px; border:1px solid transparent; }
 .tc-legend-swatch { width:12px; height:12px; border-radius:2px; flex-shrink:0; }
 
+/* ── Legends (the doctor's codes) ─── */
+.tc-doclegend-<?= $uid ?> {
+    margin-top: 14px; padding: 12px 14px;
+    border: 1px solid #CBD5E1; border-radius: 10px; background: #FFFFFF;
+}
+.tc-doclegend-<?= $uid ?> .tc-lg-title {
+    font-size: 0.8rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+    color: #0F172A; margin: 0 0 10px; text-align: left;
+}
+.tc-doclegend-<?= $uid ?> .tc-lg-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px 14px;
+}
+.tc-doclegend-<?= $uid ?> .tc-lg-item {
+    display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 10px;
+    font-size: 0.86rem; line-height: 1.25; color: #1E293B; text-align: left;
+}
+.tc-doclegend-<?= $uid ?> .tc-lg-code {
+    display: flex; align-items: center; justify-content: center;
+    height: 28px; border-radius: 6px; box-sizing: border-box;
+    background: #DBEAFE; border: 1px solid #60A5FA; color: #1E3A8A;
+    font-size: 0.92rem; font-weight: 800;
+}
+[data-theme="dark"] .tc-doclegend-<?= $uid ?> { background:#1E293B; border-color:#475569; }
+[data-theme="dark"] .tc-doclegend-<?= $uid ?> .tc-lg-title { color:#F1F5F9; }
+[data-theme="dark"] .tc-doclegend-<?= $uid ?> .tc-lg-item { color:#E2E8F0; }
+[data-theme="dark"] .tc-doclegend-<?= $uid ?> .tc-lg-code { background:#1E3A8A; border-color:#3B82F6; color:#DBEAFE; }
+@media print { .tc-doclegend-<?= $uid ?> { display: none; } }
+
 [data-theme="dark"] .tc-paper-<?= $uid ?> .tc-grid { --tc-line: #64748B; }
 [data-theme="dark"] .tc-paper-<?= $uid ?> .tc-box:not(.tc-selected) { background:#1E293B; color:#CBD5E1; }
 [data-theme="dark"] .tc-paper-<?= $uid ?> .tc-num,
-[data-theme="dark"] .tc-paper-<?= $uid ?> .tc-label:not(.tc-selected) { background:#334155; color:#E2E8F0; }
+[data-theme="dark"] .tc-paper-<?= $uid ?> .tc-label { background:#334155; color:#E2E8F0; }
 [data-theme="dark"] .tc-paper-<?= $uid ?> .tc-btn:not(.tc-selected):hover { background:#475569; }
 [data-theme="dark"] .tc-paper-<?= $uid ?>.tc-writing .tc-note:focus-within { background:#422006; }
 [data-theme="dark"] .tc-modebar-<?= $uid ?> button { background:#1E293B; border-color:#475569; color:#CBD5E1; }
@@ -238,24 +276,26 @@ foreach ($lower_prim as $i => $t) {
 <?php if ($is_input): ?>
   <input type="hidden" name="<?= htmlspecialchars($tc_marks_name) ?>" id="tcMarks_<?= $uid ?>"
          value="<?= htmlspecialchars($chart_marks ? json_encode($chart_marks) : '') ?>">
-  <div class="tc-hint-<?= $uid ?>" id="tcHint_<?= $uid ?>">Tap the box above the number for the upper tooth, below the number for the lower tooth. A tagged tooth prints as ✓ (sound tooth).</div>
+  <div class="tc-hint-<?= $uid ?>" id="tcHint_<?= $uid ?>">Tap the box above the number for the upper tooth, below the number for the lower tooth. For baby teeth, tap the empty box next to the letter. Numbers and letters cannot be tapped. A tagged tooth prints as ✓ (sound tooth).</div>
 <?php endif; ?>
 
 <?php if ($is_input): ?>
   <!-- The doctor's chart legend (same codes as the printed record) -->
-  <div id="tcDocLegend_<?= $uid ?>" style="margin-top:10px;padding:7px 10px;border:1px solid var(--gray-200,#e2e8f0);border-radius:8px;background:var(--white,#fff);font-size:0.68rem;line-height:1.7;color:var(--gray-600,#475569);text-align:center;">
-    <b>Legends:</b>
-    <span style="white-space:nowrap;"><b>&#10003;</b> Sound tooth</span> &middot;
-    <span style="white-space:nowrap;"><b>0</b> Missing / extracted tooth</span> &middot;
-    <span style="white-space:nowrap;"><b>X</b> Indicated for extraction</span> &middot;
-    <span style="white-space:nowrap;"><b>F</b> Filled</span> &middot;
-    <span style="white-space:nowrap;"><b>Am</b> Amalgam filling</span> &middot;
-    <span style="white-space:nowrap;"><b>Co</b> Composite filling</span> &middot;
-    <span style="white-space:nowrap;"><b>Ec</b> Extensive caries</span> &middot;
-    <span style="white-space:nowrap;"><b>Im</b> Impacted tooth</span> &middot;
-    <span style="white-space:nowrap;"><b>Pe</b> Partially erupted tooth</span> &middot;
-    <span style="white-space:nowrap;"><b>Jc</b> Jacket crown</span> &middot;
-    <span style="white-space:nowrap;"><b>Br</b> Bridge</span>
+  <div class="tc-doclegend-<?= $uid ?>" id="tcDocLegend_<?= $uid ?>">
+    <div class="tc-lg-title">Legends</div>
+    <div class="tc-lg-grid">
+      <div class="tc-lg-item"><span class="tc-lg-code">&#10003;</span><span>Sound tooth</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">0</span><span>Missing / extracted tooth</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">X</span><span>Indicated for extraction</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">F</span><span>Filled</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Am</span><span>Amalgam filling</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Co</span><span>Composite filling</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Ec</span><span>Extensive caries</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Im</span><span>Impacted tooth</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Pe</span><span>Partially erupted tooth</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Jc</span><span>Jacket crown</span></div>
+      <div class="tc-lg-item"><span class="tc-lg-code">Br</span><span>Bridge</span></div>
+    </div>
   </div>
 <?php endif; ?>
 
@@ -285,7 +325,7 @@ foreach ($lower_prim as $i => $t) {
     var STATUS_COLORS = <?= json_encode($status_colors) ?>;
     var writing = false;
 
-    var HINT_TAG   = 'Tap the box above the number for the upper tooth, below the number for the lower tooth. A tagged tooth prints as ✓ (sound tooth).';
+    var HINT_TAG   = 'Tap the box above the number for the upper tooth, below the number for the lower tooth. For baby teeth, tap the empty box next to the letter. Numbers and letters cannot be tapped. A tagged tooth prints as ✓ (sound tooth).';
     var HINT_WRITE = 'Tap any empty box and type the code from the Legends below: 0 = missing/extracted, X = for extraction, F = filled, Am, Co, Ec, Im, Pe, Jc, Br. Leave it blank to erase.';
 
     function getStatus() {
