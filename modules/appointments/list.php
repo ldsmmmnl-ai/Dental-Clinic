@@ -550,7 +550,7 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             <div class="modal-body" style="font-size:0.875rem;">
                 Permanently delete appointment <strong id="deleteApptCode"></strong>?
                 <div style="margin-top:10px;padding:10px;background:var(--danger-bg);border-radius:6px;font-size:0.78rem;color:var(--danger);">
-                    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Warning:</strong> This will permanently delete the appointment and its payment records. This cannot be undone.
+                    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Warning:</strong> This will permanently delete the appointment. Any bill or payments for it are kept in Billing (they just won't be linked to an appointment anymore). This cannot be undone.
                 </div>
             </div>
             <div class="modal-footer">
