@@ -7,6 +7,10 @@ RUN install-php-extensions mysqli pdo_mysql mbstring curl gd zip opcache
 RUN mkdir -p /tmp/php_sessions && chmod 1777 /tmp/php_sessions && \
     echo "session.save_path = /tmp/php_sessions" > /usr/local/etc/php/conf.d/sessions.ini
 
+# Upload limits — PHP's defaults are 2 MB per file / 8 MB per request, which rejects most phone photos and
+# X-rays even though the UI allows up to 10 MB. post_max_size must be bigger than upload_max_filesize.
+RUN printf "upload_max_filesize=12M\npost_max_size=14M\nmemory_limit=256M\n" > /usr/local/etc/php/conf.d/uploads.ini
+
 # OPcache — eliminates PHP re-parsing on every request
 RUN echo "[opcache]"                                       >  /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.enable=1"                               >> /usr/local/etc/php/conf.d/opcache.ini && \
