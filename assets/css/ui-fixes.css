@@ -250,3 +250,61 @@ td[data-label="Code"], td[data-label="Date & Time"], td[data-label="Date"], td[d
     .act-btn { min-height: 40px; }
     .act-primary { flex-wrap: wrap; }
 }
+
+/* =============================================================================
+   8. SEE-THROUGH (TRANSPARENT) BUTTONS — more contrast
+   Goal: every button that had no fill now has a clear fill, a visible border or
+   darker text (WCAG: text 4.5:1, borders/outlines 3:1).  Nothing above was
+   changed or removed; these rules only add on top.
+   ============================================================================= */
+
+/* 8a. DARK MODE — style.css forces "background: transparent !important" on four
+   outline buttons, and gives the teal one a dark hover that hid its dark text
+   (1.1:1).  Same colours as section 1, but with !important so they actually apply. */
+[data-theme="dark"] .btn-outline-primary { background: rgba(20, 168, 168, 0.16) !important; }
+[data-theme="dark"] .btn-outline-info    { background: rgba(14, 165, 233, 0.16) !important; }
+[data-theme="dark"] .btn-outline-success { background: rgba(16, 185, 129, 0.16) !important; }
+[data-theme="dark"] .btn-outline-warning { background: rgba(245, 158, 11, 0.16) !important; }
+[data-theme="dark"] .btn-outline-danger  { background: rgba(239, 68, 68, 0.16)  !important; }
+
+[data-theme="dark"] .btn-outline-primary:hover { background: #14a8a8 !important; border-color: #14a8a8 !important; }
+[data-theme="dark"] .btn-outline-info:hover    { background: #38bdf8 !important; border-color: #38bdf8 !important; }
+[data-theme="dark"] .btn-outline-success:hover { background: #34d399 !important; border-color: #34d399 !important; }
+[data-theme="dark"] .btn-outline-warning:hover { background: #fbbf24 !important; border-color: #fbbf24 !important; }
+[data-theme="dark"] .btn-outline-danger:hover  { background: #f87171 !important; border-color: #f87171 !important; }
+
+/* 8b. LINK-STYLE BUTTONS (the "Cancel" buttons in the pop-ups): underlined, darker text */
+.btn-link { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.btn-link.text-secondary { color: var(--gray-700) !important; }
+[data-theme="dark"] .btn-link { color: #7fe3e3; }
+[data-theme="dark"] .btn-link:hover { color: #b8f3f3; }
+
+/* 8c. "Mark all read" in the bell menu — teal on dark was only 2.9:1 */
+.notif-mark-all { font-weight: 600 !important; border: 1px solid transparent !important; }
+.notif-mark-all:hover { border-color: var(--primary) !important; }
+[data-theme="dark"] .notif-mark-all { color: #7fe3e3 !important; }
+[data-theme="dark"] .notif-mark-all:hover { background: rgba(20, 168, 168, 0.2) !important; border-color: #7fe3e3 !important; }
+
+/* 8d. SMALL TEXT BUTTONS WITH NO BOX ("✕ Clear", "✕ New patient", toast close ✕…):
+   darker text + a soft fill when you point at them.  (Red "Cancel payment" style
+   buttons keep their red colour.) */
+button[style*="background:none"][style*="border:none"]:not([style*="color:var(--danger)"]) {
+    color: var(--gray-700) !important; border-radius: 6px; transition: background 0.15s;
+}
+button[style*="background:none"][style*="border:none"]:not([style*="color:var(--danger)"]):hover {
+    background: var(--ui-btn-hover) !important;
+}
+
+/* 8e. SMALL BUTTONS THAT ONLY HAD A THIN OUTLINE ("✕ Clear chart" and similar):
+   light fill + the clear border colour already set in section 1 */
+button[style*="background:none"][style*="border:1px solid"] {
+    background: var(--ui-btn-bg) !important; color: var(--ui-btn-text) !important;
+}
+button[style*="background:none"][style*="border:1px solid"]:hover {
+    background: var(--ui-btn-hover) !important; color: var(--gray-900) !important;
+}
+
+/* 8f. Keyboard users: a clear outline on every see-through button */
+.btn-link:focus-visible,
+.notif-mark-all:focus-visible,
+button[style*="background:none"]:focus-visible { outline: 3px solid var(--primary-light, #14a8a8); outline-offset: 2px; }
