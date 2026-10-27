@@ -219,14 +219,20 @@ if ($action === 'reschedule') {
         echo json_encode(['status' => 'error', 'message' => 'Invalid date format.']);
         exit();
     }
-    if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $new_time)) {
+    $chk_date = DateTime::createFromFormat('Y-m-d', $new_date);
+    if (!$chk_date || $chk_date->format('Y-m-d') !== $new_date) {
+        http_response_code(422);
+        echo json_encode(['status' => 'error', 'message' => 'That date does not exist.']);
+        exit();
+    }
+    if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $new_time)) {
         http_response_code(422);
         echo json_encode(['status' => 'error', 'message' => 'Invalid time format. Use HH:MM.']);
         exit();
     }
 
     // Fetch current appointment to log changes
-    $cur = $conn->prepare("SELECT appointment_code, appointment_date, appointment_time, patient_id, status, service_id FROM appointments WHERE id = ? LIMIT 1");
+    $cur = $conn->prepare("SELECT appointment_code, appointment_date, appointment_time, patient_id, status, service_id, doctor_id FROM appointments WHERE id = ? LIMIT 1");
     $cur->execute([$id]);
     $current = $cur->fetch(PDO::FETCH_ASSOC);
     if (!$current) {
@@ -242,6 +248,102 @@ if ($action === 'reschedule') {
         http_response_code(422);
         echo json_encode(['status' => 'error', 'message' => 'Cannot reschedule a ' . $current['status'] . ' appointment.']);
         exit();
+    }
+
+    // ── Server-side schedule checks ─────────────────────────────────────────────────────────────
+    // Same rules the slot picker (get_slots) uses, enforced here too so a stale page or a hand-made
+    // request can't book a blocked date, a closed day, a doctor's day off, a past date or a taken slot.
+    // Only enforced when the date, time or doctor actually changes — editing just the notes or services
+    // of an older pending appointment still works.
+    $cur_doctor = $current['doctor_id'] !== null ? (int)$current['doctor_id'] : null;
+    $when_changed = ($new_date !== $current['appointment_date'])
+                 || (substr($new_time, 0, 5) !== substr((string)$current['appointment_time'], 0, 5))
+                 || ($new_doctor_id !== $cur_doctor);
+
+    if ($when_changed) {
+        $sched_err = null;
+        $day       = strtolower(date('l', strtotime($new_date)));
+        $day_code  = substr($day, 0, 3);
+        $sched     = null;
+        $open_time = $close_time = null;
+
+        if ($new_date < date('Y-m-d')) {
+            $sched_err = 'You cannot move an appointment to a past date.';
+        }
+
+        if (!$sched_err) {
+            $bl = $conn->prepare("SELECT id FROM blocked_dates WHERE blocked_date = ? LIMIT 1");
+            $bl->execute([$new_date]);
+            if ($bl->fetch(PDO::FETCH_ASSOC)) $sched_err = 'The clinic is closed on that date (blocked date).';
+            $bl->closeCursor();
+        }
+
+        if (!$sched_err) {
+            $sc = $conn->prepare("SELECT open_time, close_time, slot_duration_minutes FROM schedules WHERE day_of_week = ? AND is_open = TRUE LIMIT 1");
+            $sc->execute([$day]);
+            $sched = $sc->fetch(PDO::FETCH_ASSOC);
+            $sc->closeCursor();
+            if (!$sched) {
+                $sched_err = 'The clinic is closed on ' . ucfirst($day) . 's.';
+            } else {
+                $open_time  = $sched['open_time'];
+                $close_time = $sched['close_time'];
+            }
+        }
+
+        if (!$sched_err && $new_doctor_id) {
+            $ds = $conn->prepare("SELECT schedule_days, start_time, end_time FROM doctors WHERE id = ? AND is_active = TRUE LIMIT 1");
+            $ds->execute([$new_doctor_id]);
+            $doc = $ds->fetch(PDO::FETCH_ASSOC);
+            $ds->closeCursor();
+            if (!$doc) {
+                $sched_err = 'That doctor is not available (inactive or not found).';
+            } elseif (!in_array($day_code, array_map('strtolower', array_map('trim', explode(',', $doc['schedule_days'] ?? ''))), true)) {
+                $sched_err = 'That doctor does not work on ' . ucfirst($day) . 's.';
+            } else {
+                if (!empty($doc['start_time'])) $open_time  = $doc['start_time'];
+                if (!empty($doc['end_time']))   $close_time = $doc['end_time'];
+            }
+        }
+
+        $t_new = strtotime($new_date . ' ' . $new_time);
+        if (!$sched_err && $open_time && $close_time) {
+            $t_open  = strtotime($new_date . ' ' . $open_time);
+            $t_close = strtotime($new_date . ' ' . $close_time);
+            if ($t_open && $t_close && ($t_new < $t_open || $t_new >= $t_close)) {
+                $sched_err = 'That time is outside working hours (' . date('h:i A', $t_open) . ' – ' . date('h:i A', $t_close) . ').';
+            }
+        }
+
+        if (!$sched_err && $t_new) {
+            // Taken = the new start time falls inside another appointment's window (this one is excluded).
+            $slot_dur = max(1, (int)($sched['slot_duration_minutes'] ?? 30));
+            $sql    = "SELECT a.appointment_time, COALESCE(s.duration_minutes, ?) AS duration_minutes
+                       FROM appointments a
+                       LEFT JOIN services s ON s.id = a.service_id
+                       WHERE a.appointment_date = ? AND a.id != ?
+                         AND a.status NOT IN ('cancelled', 'no-show')";
+            $params = [$slot_dur, $new_date, $id];
+            if ($new_doctor_id) { $sql .= " AND a.doctor_id = ?"; $params[] = $new_doctor_id; }
+            $tk = $conn->prepare($sql);
+            $tk->execute($params);
+            $rows = $tk->fetchAll(PDO::FETCH_ASSOC);
+            $tk->closeCursor();
+            foreach ($rows as $r) {
+                $ex_start = strtotime($new_date . ' ' . $r['appointment_time']);
+                $ex_end   = $ex_start + ((int)$r['duration_minutes'] * 60);
+                if ($t_new >= $ex_start && $t_new < $ex_end) {
+                    $sched_err = 'That time slot is already taken (' . date('h:i A', $ex_start) . ' – ' . date('h:i A', $ex_end) . '). Please pick another time.';
+                    break;
+                }
+            }
+        }
+
+        if ($sched_err) {
+            http_response_code(422);
+            echo json_encode(['status' => 'error', 'message' => $sched_err]);
+            exit();
+        }
     }
 
     // Duplicate guard: warn if patient already has another appt on new date
