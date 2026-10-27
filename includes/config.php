@@ -67,7 +67,11 @@ if (!is_dir(__DIR__ . '/../logs')) {
 ini_set('display_errors',         APP_DEBUG ? 1 : 0);
 ini_set('display_startup_errors', APP_DEBUG ? 1 : 0);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../logs/error.log');
+// On Railway the container disk is wiped on every deploy and logs/error.log never shows in the Deploy Logs,
+// so send errors to stderr there. Locally (Laragon/XAMPP) keep writing logs/error.log as before.
+$__on_railway = getenv('RAILWAY_PROJECT_ID') !== false || getenv('RAILWAY_ENVIRONMENT_NAME') !== false || getenv('RAILWAY_ENVIRONMENT') !== false;
+ini_set('error_log', ($__on_railway && is_writable('/dev/stderr')) ? '/dev/stderr' : __DIR__ . '/../logs/error.log');
+unset($__on_railway);
 error_reporting(E_ALL);
 
 // Catch any unhandled exception — show friendly error page, never a stack trace
