@@ -83,6 +83,13 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
 <html lang="en">
 <head><?php include '../../includes/head.php'; ?>
 <style>
+/* =============================================================================
+   APPOINTMENT LIST — design
+   Layout order on the page:  Header  →  Status tabs  →  Filter card  →  Table card  →  Pager
+   Everything below is grouped the same way. Buttons in the table use the
+   .act-* classes that already live in ui-fixes.css.
+   ============================================================================= */
+
 /* ── Stronger backdrop blur for New Appointment modal ─── */
 .modal-backdrop.show {
     backdrop-filter: blur(6px);
@@ -90,64 +97,244 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
     background-color: rgba(0,0,0,0.55);
     opacity: 1 !important;
 }
-/* Ensure all table cells align vertically to centre */
-#appointmentsTable td { vertical-align: middle !important; }
-/* Uniform minimum height on all action buttons */
-#appointmentsTable td a[style],
-#appointmentsTable td button[style] { box-sizing: border-box; min-height: 30px; }
 
-/* ── Status + Type pills: horizontal scroll on mobile (no wrap) ── */
-.mobile-tab-bar,
-.mobile-type-bar {
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+/* ── 1. STATUS TABS ──────────────────────────────────────────────────────── */
+.ap-tabs {
+    display: flex; gap: 6px; margin-bottom: 16px;
+    overflow-x: auto; padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
-.mobile-tab-bar::-webkit-scrollbar,
-.mobile-type-bar::-webkit-scrollbar { display: none; }
+.ap-tabs::-webkit-scrollbar { display: none; }
 
+.ap-tab {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 7px 15px; border-radius: 999px;
+    font-size: 0.78rem; font-weight: 700; white-space: nowrap; text-decoration: none;
+    border: 1.5px solid var(--gray-300); background: var(--white); color: var(--gray-600);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.ap-tab:hover { background: var(--gray-50); border-color: var(--gray-400); color: var(--gray-900); text-decoration: none; }
+.ap-tab:focus-visible,
+.ap-pill:focus-visible,
+.ap-btn:focus-visible { outline: 3px solid var(--primary-light, #14a8a8); outline-offset: 2px; }
+.ap-tab.is-active { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+.ap-tab--all.is-active,
+.ap-tab--confirmed.is-active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
+.ap-tab--pending.is-active   { background: var(--warning-bg); border-color: var(--warning); color: #92400e; }
+.ap-tab--completed.is-active { background: var(--success-bg); border-color: var(--success); color: #065f46; }
+.ap-tab--cancelled.is-active { background: var(--danger-bg);  border-color: var(--danger);  color: #b91c1c; }
+.ap-tab--no-show.is-active   { background: var(--gray-100);   border-color: var(--gray-500); color: var(--gray-700); }
+
+/* ── 2. FILTER CARD (type pills on top, search row below) ────────────────── */
+.ap-filters-card {
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--white); border: var(--border); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.ap-typebar {
+    display: flex; align-items: center; gap: 6px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--gray-100);
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.ap-typebar::-webkit-scrollbar { display: none; }
+.ap-typebar__label {
+    flex-shrink: 0; margin-right: 4px;
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-600);
+}
+.ap-pill {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    padding: 5px 13px; border-radius: 999px;
+    font-size: 0.76rem; font-weight: 700; white-space: nowrap; text-decoration: none;
+    border: 1.5px solid var(--gray-300); background: var(--white); color: var(--gray-600);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ap-pill:hover { background: var(--gray-50); border-color: var(--gray-400); color: var(--gray-900); text-decoration: none; }
+.ap-pill.is-active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
+
+.ap-filter-form { margin: 0; }
+.ap-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ap-field { position: relative; }
+.ap-field > i {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--gray-500); font-size: 0.85rem; pointer-events: none;
+}
+.ap-field--search { flex: 2 1 240px; min-width: 160px; }
+.ap-date-row      { display: flex; align-items: center; gap: 8px; flex: 1 1 250px; }
+.ap-date-row .ap-field { flex: 1; }
+.ap-select        { flex: 0 1 200px; width: auto; }
+.ap-actions       { display: flex; gap: 8px; margin-left: auto; }
+
+.ap-input {
+    width: 100%; min-height: 38px; padding: 8px 12px;
+    border: 1.5px solid var(--gray-300); border-radius: 9px;
+    background: var(--white); color: var(--gray-900);
+    font-family: inherit; font-size: 0.84rem; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ap-field .ap-input { padding-left: 34px; }
+.ap-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+
+.ap-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 38px; padding: 8px 18px; border-radius: 9px;
+    font-family: inherit; font-size: 0.84rem; font-weight: 700; white-space: nowrap;
+    text-decoration: none; cursor: pointer; border: 1.5px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ap-btn:hover { text-decoration: none; }
+.ap-btn--primary { background: var(--primary); border-color: var(--primary-dark); color: #fff; }
+.ap-btn--primary:hover { background: var(--primary-dark); color: #fff; }
+.ap-btn--ghost { background: var(--white); border-color: var(--gray-300); color: var(--gray-700); padding: 8px 14px; }
+.ap-btn--ghost:hover { background: var(--gray-50); border-color: var(--gray-400); color: var(--gray-900); }
+.ap-btn--ghost.is-active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
+.ap-btn--danger { background: var(--danger-bg); border-color: var(--danger); color: #b91c1c; }
+.ap-btn--danger:hover { background: var(--danger); color: #fff; }
+
+/* ── 3. TABLE CARD ───────────────────────────────────────────────────────── */
+.ap-card {
+    background: var(--white); border: var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.ap-table { width: 100%; border-collapse: collapse; }
+
+.ap-table thead th {
+    padding: 12px 16px; text-align: left; white-space: nowrap;
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--gray-600); background: var(--gray-50); border-bottom: 2px solid var(--gray-200);
+}
+.ap-table tbody td {
+    padding: 14px 16px; vertical-align: middle !important;
+    border-bottom: 1px solid var(--gray-100);
+}
+.ap-table tbody tr:last-child td { border-bottom: 0; }
+
+.ap-row { background: var(--white); transition: background 0.15s; }
+.ap-row:hover { background: var(--gray-50); }
+.ap-row.is-today { background: var(--blue-50); }
+.ap-row.is-today:hover { background: var(--primary-bg); }
+.ap-row.is-today td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+
+/* Code */
+.ap-code { display: inline-flex; align-items: center; gap: 7px; font-family: monospace; font-size: 0.79rem; font-weight: 700; color: var(--primary-dark); }
+.ap-dot  { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px var(--blue-200); flex-shrink: 0; }
+
+/* Patient + type chip */
+.ap-patient { font-size: 0.88rem; font-weight: 700; color: var(--gray-900); text-decoration: none; }
+.ap-patient:hover { color: var(--primary); text-decoration: underline; }
+.ap-chip {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle;
+    padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; border: 1px solid transparent;
+}
+.ap-chip i { font-size: 0.64rem; }
+.ap-chip--walkin { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.ap-chip--booked { background: var(--primary-bg); color: var(--primary-dark); border-color: var(--primary); }
+
+/* Service / Doctor / Date */
+.ap-service { font-size: 0.84rem; font-weight: 500; color: var(--gray-700); }
+.ap-doctor  { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--gray-700); white-space: nowrap; }
+.ap-doctor i { color: var(--primary); font-size: 0.85rem; }
+.ap-muted   { font-size: 0.8rem; color: var(--gray-500); }
+.ap-date    { font-size: 0.84rem; font-weight: 700; color: var(--gray-800, var(--gray-700)); white-space: nowrap; }
+.ap-time    { margin-top: 2px; font-size: 0.75rem; color: var(--gray-600); white-space: nowrap; }
+.ap-time i  { font-size: 0.68rem; }
+.ap-today-tag {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; vertical-align: middle;
+    font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+    background: var(--primary); color: #fff;
+}
+
+/* Status badge (colour follows data-status, so the live update in the page script keeps working) */
+.ap-badge {
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    padding: 4px 11px; border-radius: 999px; font-size: 0.74rem; font-weight: 700;
+    background: var(--gray-100); color: var(--gray-700); border: 1.5px solid var(--gray-300);
+}
+.ap-badge i { font-size: 0.7rem; }
+.ap-badge[data-status="pending"]   { background: var(--warning-bg); color: #92400e; border-color: var(--warning); }
+.ap-badge[data-status="confirmed"] { background: var(--primary-bg); color: var(--primary-dark); border-color: var(--primary); }
+.ap-badge[data-status="completed"] { background: var(--success-bg); color: #065f46; border-color: var(--success); }
+.ap-badge[data-status="cancelled"] { background: var(--danger-bg);  color: #b91c1c; border-color: var(--danger); }
+.ap-badge[data-status="no-show"]   { background: var(--gray-100);   color: var(--gray-700); border-color: var(--gray-500); }
+
+/* Actions column: main buttons on the left, small icon buttons on the right */
+.ap-table .act-icons { margin-left: auto; }
+
+/* Empty state */
+.ap-empty { padding: 60px 20px !important; text-align: center; color: var(--gray-500); }
+.ap-empty i { display: block; margin-bottom: 12px; font-size: 2.5rem; opacity: 0.5; }
+.ap-empty__title { font-size: 0.92rem; font-weight: 700; color: var(--gray-700); }
+.ap-empty__text  { margin-top: 4px; font-size: 0.8rem; }
+
+/* ── 4. PAGER ────────────────────────────────────────────────────────────── */
+.ap-pager {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    margin-top: 16px; padding: 10px 16px;
+    background: var(--white); border: var(--border); border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.ap-pager__info { font-size: 0.8rem; font-weight: 600; color: var(--gray-600); }
+.ap-pager__info strong { color: var(--gray-900); }
+.ap-pager__nav { display: flex; align-items: center; gap: 5px; }
+.ap-page {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    min-width: 34px; min-height: 34px; padding: 0 12px; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 700; text-decoration: none;
+    border: 1.5px solid var(--gray-300); background: var(--white); color: var(--gray-700);
+    transition: background 0.12s, border-color 0.12s;
+}
+.ap-page:hover { background: var(--gray-100); border-color: var(--gray-400); color: var(--gray-900); text-decoration: none; }
+.ap-page--num { padding: 0; }
+.ap-page.is-current { background: var(--primary); border-color: var(--primary-dark); color: #fff; box-shadow: 0 2px 8px rgba(13,110,110,0.3); }
+.ap-page.is-current:hover { background: var(--primary-dark); color: #fff; }
+
+/* ── 5. PHONE ────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    /* Pills become a single scrollable strip — no messy wrapping */
-    .mobile-tab-bar,
-    .mobile-type-bar {
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        padding-bottom: 4px;
-    }
-    .mobile-tab-bar a,
-    .mobile-type-bar a { flex-shrink: 0; }
-
-    /* Filter bar stacks vertically, each row full-width */
-    .mobile-filter-bar {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 8px !important;
-    }
-    .mobile-filter-bar > * { width: 100% !important; min-width: unset !important; }
-
-    /* Date input + Today shortcut sit side-by-side */
-    .appt-date-row { display: flex !important; gap: 8px; width: 100%; }
-    .appt-date-row .date-input-wrap { flex: 1; }
-    .appt-date-row .today-btn       { flex-shrink: 0; }
-
-    /* Filter + Clear buttons side-by-side */
-    .appt-btn-row { display: flex !important; gap: 8px; width: 100%; }
-    .appt-btn-row > * { flex: 1; justify-content: center; }
+    .ap-filters-card { padding: 12px; }
+    .ap-filter-row { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+    .ap-filter-row > * { width: 100% !important; min-width: unset !important; flex: none !important; margin-left: 0 !important; }
+    .ap-date-row .ap-field { flex: 1 !important; }
+    .ap-date-row .today-btn { width: auto !important; flex-shrink: 0 !important; }
+    .ap-actions > * { flex: 1; }
+    .ap-input, .ap-btn { min-height: 44px; }
+    .ap-pager { justify-content: center; }
+}
+@media (max-width: 600px) {
+    /* each appointment is a card; today's card gets the accent on its left edge */
+    .ap-table .ap-row.is-today { border-left: 3px solid var(--primary); }
+    .ap-row.is-today td:first-child { box-shadow: none; }
+    .ap-date { font-size: 0.8rem; }
 }
 
-/* Dark mode */
-[data-theme="dark"] .mobile-filter-bar input,
-[data-theme="dark"] .mobile-filter-bar select {
-    background: var(--gray-200) !important;
-    color: var(--gray-900) !important;
-    border-color: var(--gray-300) !important;
-}
-[data-theme="dark"] .mobile-filter-bar input::placeholder { color: var(--gray-500) !important; }
-[data-theme="dark"] .mobile-tab-bar a,
-[data-theme="dark"] .mobile-type-bar a {
-    background: var(--gray-200) !important;
-    border-color: var(--gray-300) !important;
-    color: var(--gray-600) !important;
-}
+/* ── 6. DARK MODE ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .ap-tab,
+[data-theme="dark"] .ap-pill,
+[data-theme="dark"] .ap-page,
+[data-theme="dark"] .ap-btn--ghost { background: var(--gray-200); border-color: var(--gray-300); color: var(--gray-700); }
+[data-theme="dark"] .ap-input { background: var(--gray-200); border-color: var(--gray-300); color: var(--gray-900); }
+[data-theme="dark"] .ap-input::placeholder { color: var(--gray-500); }
+[data-theme="dark"] .ap-tab--all.is-active,
+[data-theme="dark"] .ap-tab--confirmed.is-active,
+[data-theme="dark"] .ap-pill.is-active,
+[data-theme="dark"] .ap-btn--ghost.is-active { background: rgba(20,168,168,0.16); border-color: #14a8a8; color: #7fe3e3; }
+[data-theme="dark"] .ap-tab--pending.is-active   { background: rgba(245,158,11,0.16); border-color: #fbbf24; color: #fcd34d; }
+[data-theme="dark"] .ap-tab--completed.is-active { background: rgba(16,185,129,0.16); border-color: #34d399; color: #6ee7b7; }
+[data-theme="dark"] .ap-tab--cancelled.is-active { background: rgba(239,68,68,0.16);  border-color: #f87171; color: #fca5a5; }
+[data-theme="dark"] .ap-tab--no-show.is-active   { background: var(--gray-300); border-color: var(--gray-500); color: var(--gray-900); }
+[data-theme="dark"] .ap-badge[data-status="pending"]   { background: rgba(245,158,11,0.16); color: #fcd34d; border-color: #fbbf24; }
+[data-theme="dark"] .ap-badge[data-status="confirmed"] { background: rgba(20,168,168,0.16); color: #7fe3e3; border-color: #14a8a8; }
+[data-theme="dark"] .ap-badge[data-status="completed"] { background: rgba(16,185,129,0.16); color: #6ee7b7; border-color: #34d399; }
+[data-theme="dark"] .ap-badge[data-status="cancelled"] { background: rgba(239,68,68,0.16);  color: #fca5a5; border-color: #f87171; }
+[data-theme="dark"] .ap-badge[data-status="no-show"]   { background: var(--gray-200); color: var(--gray-700); border-color: var(--gray-400); }
+[data-theme="dark"] .ap-btn--danger { background: rgba(239,68,68,0.16); border-color: #f87171; color: #fca5a5; }
+[data-theme="dark"] .ap-btn--danger:hover { background: #f87171; color: #2e0606; }
+[data-theme="dark"] .ap-chip--walkin { background: rgba(59,130,246,0.16); color: #93c5fd; border-color: #60a5fa; }
+[data-theme="dark"] .ap-chip--booked { background: rgba(20,168,168,0.16); color: #7fe3e3; border-color: #14a8a8; }
+[data-theme="dark"] .ap-row.is-today { background: rgba(20,168,168,0.10); }
+[data-theme="dark"] .ap-row.is-today:hover { background: rgba(20,168,168,0.16); }
+[data-theme="dark"] .ap-today-tag { background: #14a8a8; color: #04292a; }
+[data-theme="dark"] .ap-page.is-current { background: #14a8a8; border-color: #14a8a8; color: #04292a; }
 </style>
 </head>
 <body>
@@ -172,250 +359,252 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             </div>
         </div>
 
-        <!-- ── Quick Status Tabs ────────────────────────────────── -->
-        <div class="mobile-tab-bar" style="display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:2px;">
+        <!-- ── 1. Status tabs ───────────────────────────────────── -->
+        <nav class="ap-tabs" aria-label="Filter by status">
             <?php
             $tab_statuses = [
-                '' => ['label'=>'All', 'icon'=>'bi-grid-3x3-gap', 'color'=>'var(--primary)', 'bg'=>'var(--primary-bg)', 'border'=>'var(--blue-200)'],
-                'pending'   => ['label'=>'Pending',   'icon'=>'bi-clock',       'color'=>'var(--warning)', 'bg'=>'var(--warning-bg)', 'border'=>'var(--warning-border)'],
-                'confirmed' => ['label'=>'Confirmed', 'icon'=>'bi-check-circle','color'=>'var(--primary)', 'bg'=>'var(--primary-bg)', 'border'=>'var(--blue-200)'],
-                'completed' => ['label'=>'Completed', 'icon'=>'bi-check2-all',  'color'=>'var(--success)', 'bg'=>'var(--success-bg)', 'border'=>'var(--success-border)'],
-                'cancelled' => ['label'=>'Cancelled', 'icon'=>'bi-x-circle',    'color'=>'var(--danger)',  'bg'=>'var(--danger-bg)',  'border'=>'var(--danger-border)'],
-                'no-show'   => ['label'=>'No-show',   'icon'=>'bi-person-dash', 'color'=>'var(--gray-500)','bg'=>'var(--gray-100)',   'border'=>'var(--gray-200)'],
+                ''          => ['key'=>'all',       'label'=>'All',       'icon'=>'bi-grid-3x3-gap'],
+                'pending'   => ['key'=>'pending',   'label'=>'Pending',   'icon'=>'bi-clock'],
+                'confirmed' => ['key'=>'confirmed', 'label'=>'Confirmed', 'icon'=>'bi-check-circle'],
+                'completed' => ['key'=>'completed', 'label'=>'Completed', 'icon'=>'bi-check2-all'],
+                'cancelled' => ['key'=>'cancelled', 'label'=>'Cancelled', 'icon'=>'bi-x-circle'],
+                'no-show'   => ['key'=>'no-show',   'label'=>'No-show',   'icon'=>'bi-person-dash'],
             ];
             foreach ($tab_statuses as $val => $tab):
                 $isActive = ($status_filter === $val);
                 $href = 'list.php?' . ($val ? 'status=' . $val . '&' : '') . ($date_filter ? 'date=' . urlencode($date_filter) . '&' : '') . ($type_filter ? 'type=' . urlencode($type_filter) . '&' : '') . ($search ? 'search=' . urlencode($search) . '&' : '') . ($doctor_filter ? 'doctor_id=' . $doctor_filter . '&' : '');
             ?>
-            <a href="<?php echo $href; ?>" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;font-size:0.76rem;font-weight:700;text-decoration:none;transition:all 0.15s;
-                border:1.5px solid <?php echo $isActive ? $tab['color'] : 'var(--gray-200)'; ?>;
-                background:<?php echo $isActive ? $tab['bg'] : 'var(--white)'; ?>;
-                color:<?php echo $isActive ? $tab['color'] : 'var(--gray-500)'; ?>;
-                box-shadow:<?php echo $isActive ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'; ?>;">
-                <i class="bi <?php echo $tab['icon']; ?>"></i>
+            <a href="<?php echo $href; ?>" class="ap-tab ap-tab--<?php echo $tab['key']; ?><?php echo $isActive ? ' is-active' : ''; ?>"<?php echo $isActive ? ' aria-current="page"' : ''; ?>>
+                <i class="bi <?php echo $tab['icon']; ?>" aria-hidden="true"></i>
                 <?php echo $tab['label']; ?>
             </a>
             <?php endforeach; ?>
-        </div>
+        </nav>
 
 <button type="button" class="phone-filter-btn" onclick="document.getElementById('apptFilters').classList.toggle('open')">
     <i class="bi bi-funnel"></i> Search &amp; Filters
 </button>
 <div class="appt-filters<?php echo ($search || $date_filter || $doctor_filter || $type_filter) ? ' open' : ''; ?>" id="apptFilters">
 
-        <!-- ── Type Filter Pills ────────────────────────────────── -->
-        <div class="mobile-type-bar" style="display:flex;gap:6px;margin-bottom:16px;align-items:center;overflow-x:auto;padding-bottom:2px;">
-            <span style="font-size:0.72rem;color:var(--gray-400);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Type:</span>
-            <?php
-            $type_opts = [
-                ''          => ['label'=>'All Types',       'icon'=>'bi-grid'],
-                'walk-in'   => ['label'=>'Walk-in',          'icon'=>'bi-person-walking'],
-                'scheduled' => ['label'=>'Advance Booking',  'icon'=>'bi-calendar-check'],
-            ];
-            foreach ($type_opts as $tval => $topt):
-                $tActive = ($type_filter === $tval);
-                $tHref   = 'list.php?' . ($tval ? 'type=' . $tval . '&' : '') . ($status_filter ? 'status=' . urlencode($status_filter) . '&' : '') . ($date_filter ? 'date=' . urlencode($date_filter) . '&' : '') . ($search ? 'search=' . urlencode($search) . '&' : '') . ($doctor_filter ? 'doctor_id=' . $doctor_filter . '&' : '');
-            ?>
-            <a href="<?php echo $tHref; ?>" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;text-decoration:none;transition:all 0.15s;
-                border:1.5px solid <?php echo $tActive ? 'var(--primary)' : 'var(--gray-200)'; ?>;
-                background:<?php echo $tActive ? 'var(--primary-bg)' : 'var(--white)'; ?>;
-                color:<?php echo $tActive ? 'var(--primary)' : 'var(--gray-500)'; ?>;">
-                <i class="bi <?php echo $topt['icon']; ?>"></i>
-                <?php echo $topt['label']; ?>
-            </a>
-            <?php endforeach; ?>
-        </div>
+        <!-- ── 2. Filter card: type pills, then the search row ──── -->
+        <div class="ap-filters-card">
 
-        <!-- ── Filter Bar ───────────────────────────────────────── -->
-        <form method="GET" style="background:var(--white);border:var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-            <?php if ($status_filter): ?><input type="hidden" name="status" value="<?php echo htmlspecialchars($status_filter); ?>"><?php endif; ?>
-            <?php if ($type_filter): ?><input type="hidden" name="type" value="<?php echo htmlspecialchars($type_filter); ?>"><?php endif; ?>
-            <div class="mobile-filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                <!-- Search — full-width on mobile -->
-                <div style="position:relative;flex:1;min-width:160px;">
-                    <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:0.82rem;"></i>
-                    <input type="text" name="search" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:0.82rem;outline:none;transition:border 0.15s;background:var(--white);color:var(--gray-900);" placeholder="Search patient or code&#x2026;" value="<?php echo htmlspecialchars($search); ?>" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
-                </div>
-                <!-- Date + Today on same row -->
-                <div class="appt-date-row" style="display:flex;gap:8px;align-items:center;">
-                    <div class="date-input-wrap" style="position:relative;flex:1;">
-                        <i class="bi bi-calendar3" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:0.82rem;pointer-events:none;"></i>
-                        <input type="date" name="date" style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:0.82rem;outline:none;transition:border 0.15s;background:var(--white);color:var(--gray-900);" value="<?php echo htmlspecialchars($date_filter); ?>" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
-                    </div>
-                    <?php
-                    // Carry ALL active filters so Today never silently drops context
-                    $today_href = 'list.php?date=' . date('Y-m-d')
-                        . ($status_filter ? '&status='    . urlencode($status_filter) : '')
-                        . ($type_filter   ? '&type='      . urlencode($type_filter)   : '')
-                        . ($search        ? '&search='    . urlencode($search)        : '')
-                        . ($doctor_filter ? '&doctor_id=' . $doctor_filter            : '');
-                    $today_active = ($date_filter === date('Y-m-d'));
-                    ?>
-                    <a href="<?php echo $today_href; ?>" class="today-btn" style="padding:8px 14px;border-radius:9px;white-space:nowrap;font-size:0.78rem;font-weight:700;text-decoration:none;
-                        border:1.5px solid <?php echo $today_active ? 'var(--primary)' : 'var(--gray-200)'; ?>;
-                        background:<?php echo $today_active ? 'var(--primary-bg)' : 'var(--white)'; ?>;
-                        color:<?php echo $today_active ? 'var(--primary)' : 'var(--gray-500)'; ?>;">
-                        <?php echo $today_active ? '&#x2713;&nbsp;Today' : 'Today'; ?>
-                    </a>
-                </div>
-                <!-- Doctor dropdown -->
-                <?php if (!empty($all_doctors)): ?>
-                <select name="doctor_id" style="padding:8px 14px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:0.82rem;outline:none;background:var(--white);color:var(--gray-600);transition:border 0.15s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
-                    <option value="">All Doctors</option>
-                    <?php foreach ($all_doctors as $d): ?>
-                    <option value="<?php echo $d['id']; ?>" <?php echo $doctor_filter == $d['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($d['full_name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php endif; ?>
-                <!-- Filter + Clear side-by-side -->
-                <div class="appt-btn-row" style="display:flex;gap:8px;">
-                    <button type="submit" style="padding:8px 20px;border-radius:9px;background:var(--primary);color:var(--white);border:none;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.15s;" onmouseover="this.style.background='var(--primary-dark)'" onmouseout="this.style.background='var(--primary)'">
-                        <i class="bi bi-funnel-fill"></i> Filter
-                    </button>
-                    <?php if ($search || $date_filter || $doctor_filter || $status_filter): ?>
-                    <a href="list.php" style="padding:8px 16px;border-radius:9px;border:1.5px solid var(--danger-border);background:var(--danger-bg);color:var(--danger);font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:5px;">
-                        <i class="bi bi-x-lg"></i> Clear
-                    </a>
-                    <?php endif; ?>
-                </div>
+            <div class="ap-typebar">
+                <span class="ap-typebar__label">Type</span>
+                <?php
+                $type_opts = [
+                    ''          => ['label'=>'All Types',       'icon'=>'bi-grid'],
+                    'walk-in'   => ['label'=>'Walk-in',          'icon'=>'bi-person-walking'],
+                    'scheduled' => ['label'=>'Advance Booking',  'icon'=>'bi-calendar-check'],
+                ];
+                foreach ($type_opts as $tval => $topt):
+                    $tActive = ($type_filter === $tval);
+                    $tHref   = 'list.php?' . ($tval ? 'type=' . $tval . '&' : '') . ($status_filter ? 'status=' . urlencode($status_filter) . '&' : '') . ($date_filter ? 'date=' . urlencode($date_filter) . '&' : '') . ($search ? 'search=' . urlencode($search) . '&' : '') . ($doctor_filter ? 'doctor_id=' . $doctor_filter . '&' : '');
+                ?>
+                <a href="<?php echo $tHref; ?>" class="ap-pill<?php echo $tActive ? ' is-active' : ''; ?>">
+                    <i class="bi <?php echo $topt['icon']; ?>" aria-hidden="true"></i>
+                    <?php echo $topt['label']; ?>
+                </a>
+                <?php endforeach; ?>
             </div>
-        </form>
+
+            <form method="GET" class="ap-filter-form">
+                <?php if ($status_filter): ?><input type="hidden" name="status" value="<?php echo htmlspecialchars($status_filter); ?>"><?php endif; ?>
+                <?php if ($type_filter): ?><input type="hidden" name="type" value="<?php echo htmlspecialchars($type_filter); ?>"><?php endif; ?>
+                <div class="ap-filter-row">
+
+                    <!-- Search -->
+                    <div class="ap-field ap-field--search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input type="text" name="search" class="ap-input" placeholder="Search patient or code&#x2026;" aria-label="Search patient or code" value="<?php echo htmlspecialchars($search); ?>">
+                    </div>
+
+                    <!-- Date + Today -->
+                    <div class="ap-date-row">
+                        <div class="ap-field">
+                            <i class="bi bi-calendar3" aria-hidden="true"></i>
+                            <input type="date" name="date" class="ap-input" aria-label="Filter by date" value="<?php echo htmlspecialchars($date_filter); ?>">
+                        </div>
+                        <?php
+                        // Carry ALL active filters so Today never silently drops context
+                        $today_href = 'list.php?date=' . date('Y-m-d')
+                            . ($status_filter ? '&status='    . urlencode($status_filter) : '')
+                            . ($type_filter   ? '&type='      . urlencode($type_filter)   : '')
+                            . ($search        ? '&search='    . urlencode($search)        : '')
+                            . ($doctor_filter ? '&doctor_id=' . $doctor_filter            : '');
+                        $today_active = ($date_filter === date('Y-m-d'));
+                        ?>
+                        <a href="<?php echo $today_href; ?>" class="ap-btn ap-btn--ghost today-btn<?php echo $today_active ? ' is-active' : ''; ?>">
+                            <?php echo $today_active ? '&#x2713;&nbsp;Today' : 'Today'; ?>
+                        </a>
+                    </div>
+
+                    <!-- Doctor -->
+                    <?php if (!empty($all_doctors)): ?>
+                    <select name="doctor_id" class="ap-input ap-select" aria-label="Filter by doctor">
+                        <option value="">All Doctors</option>
+                        <?php foreach ($all_doctors as $d): ?>
+                        <option value="<?php echo $d['id']; ?>" <?php echo $doctor_filter == $d['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($d['full_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
+
+                    <!-- Filter + Clear -->
+                    <div class="ap-actions">
+                        <button type="submit" class="ap-btn ap-btn--primary">
+                            <i class="bi bi-funnel-fill" aria-hidden="true"></i> Filter
+                        </button>
+                        <?php if ($search || $date_filter || $doctor_filter || $status_filter): ?>
+                        <a href="list.php" class="ap-btn ap-btn--danger">
+                            <i class="bi bi-x-lg" aria-hidden="true"></i> Clear
+                        </a>
+                        <?php endif; ?>
+                    </div>
+
+                </div>
+            </form>
+        </div>
 
 </div><!-- /#apptFilters -->
 
-        <!-- ── Table ────────────────────────────────────────────── -->
-        <div class="mobile-card-table-wrap" style="background:var(--white);border-radius:14px;border:var(--border);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+        <!-- ── 3. Table card ────────────────────────────────────── -->
+        <div class="mobile-card-table-wrap ap-card">
             <div class="table-responsive" style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;" id="appointmentsTable" class="mobile-card-table">
+                <table id="appointmentsTable" class="mobile-card-table ap-table">
                     <thead>
-                        <tr style="border-bottom:2px solid var(--gray-200);">
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Code</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Patient</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Service</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Doctor</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Date & Time</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;">Status</th>
-                            <th style="padding:12px 16px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-600);text-align:left;min-width:260px;white-space:nowrap;">Actions</th>
+                        <tr>
+                            <th scope="col">Code</th>
+                            <th scope="col">Patient</th>
+                            <th scope="col">Service</th>
+                            <th scope="col">Doctor</th>
+                            <th scope="col">Date &amp; Time</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($appointments)): ?>
                         <tr>
-                            <td colspan="7" style="padding:60px 20px;text-align:center;color:var(--gray-400);">
-                                <i class="bi bi-calendar-x" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.5;"></i>
-                                <div style="font-size:0.9rem;font-weight:600;">No appointments found.</div>
-                                <div style="font-size:0.78rem;margin-top:4px;">Try adjusting your filters or add a new appointment.</div>
+                            <td colspan="7" class="ap-empty">
+                                <i class="bi bi-calendar-x" aria-hidden="true"></i>
+                                <div class="ap-empty__title">No appointments found.</div>
+                                <div class="ap-empty__text">Try adjusting your filters or add a new appointment.</div>
                             </td>
                         </tr>
                         <?php else: ?>
                         <?php foreach ($appointments as $a):
-                            $isToday = ($a['appointment_date'] === date('Y-m-d'));
-                            $rowBg   = $isToday ? 'background:linear-gradient(to right,var(--blue-50),var(--white));' : '';
+                            $isToday   = ($a['appointment_date'] === date('Y-m-d'));
+                            $statusKey = in_array($a['status'], ['pending','confirmed','completed','cancelled','no-show'], true) ? $a['status'] : 'other';
                             $sCfg = match($a['status']) {
-                                'pending'   => ['bg'=>'var(--warning-bg)', 'color'=>'var(--warning)', 'border'=>'var(--warning-border)', 'label'=>'Pending',   'icon'=>'bi-clock-history'],
-                                'confirmed' => ['bg'=>'var(--primary-bg)', 'color'=>'var(--primary)', 'border'=>'var(--blue-200)',      'label'=>'Confirmed', 'icon'=>'bi-check-circle-fill'],
-                                'completed' => ['bg'=>'var(--success-bg)', 'color'=>'var(--success)', 'border'=>'var(--success-border)','label'=>'Completed', 'icon'=>'bi-check2-all'],
-                                'cancelled' => ['bg'=>'var(--danger-bg)',  'color'=>'var(--danger)',  'border'=>'var(--danger-border)', 'label'=>'Cancelled', 'icon'=>'bi-x-circle-fill'],
-                                'no-show'   => ['bg'=>'var(--gray-100)',   'color'=>'var(--gray-500)','border'=>'var(--gray-200)',      'label'=>'No-show',   'icon'=>'bi-person-dash'],
-                                default     => ['bg'=>'var(--gray-100)',   'color'=>'var(--gray-400)','border'=>'var(--gray-200)',      'label'=>ucfirst($a['status']), 'icon'=>'bi-circle'],
+                                'pending'   => ['label'=>'Pending',   'icon'=>'bi-clock-history'],
+                                'confirmed' => ['label'=>'Confirmed', 'icon'=>'bi-check-circle-fill'],
+                                'completed' => ['label'=>'Completed', 'icon'=>'bi-check2-all'],
+                                'cancelled' => ['label'=>'Cancelled', 'icon'=>'bi-x-circle-fill'],
+                                'no-show'   => ['label'=>'No-show',   'icon'=>'bi-person-dash'],
+                                default     => ['label'=>ucfirst($a['status']), 'icon'=>'bi-circle'],
                             };
                         ?>
-                        <tr data-appt-id="<?php echo $a['id']; ?>" style="<?php echo $rowBg; ?>border-bottom:1px solid var(--gray-100);transition:background 0.15s;" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='<?php echo $isToday ? 'linear-gradient(to right,var(--blue-50),var(--white))' : 'var(--white)'; ?>'">
+                        <tr data-appt-id="<?php echo $a['id']; ?>" class="ap-row<?php echo $isToday ? ' is-today' : ''; ?>">
+
                             <!-- Code -->
-                            <td data-label="Code" style="padding:13px 16px;">
-                                <div style="display:flex;align-items:center;gap:6px;">
-                                    <?php if ($isToday): ?><span style="width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px var(--blue-200);"></span><?php endif; ?>
-                                    <span style="font-size:0.79rem;font-weight:700;color:var(--primary);font-family:monospace;"><?php echo htmlspecialchars($a['appointment_code']); ?></span>
-                                </div>
-                            </td>
-                            <!-- Patient -->
-                            <td data-label="Patient" style="padding:13px 16px;">
-                                <a href="<?php echo BASE_URL; ?>modules/patients/view.php?id=<?php echo $a['patient_id']; ?>" style="font-size:0.85rem;font-weight:700;color:var(--gray-900);text-decoration:none;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray-900)'"><?php echo htmlspecialchars(ucwords(strtolower($a['patient_name'] ?? ''))); ?></a>
-                                <?php if (($a['type'] ?? 'walk-in') === 'walk-in'): ?>
-                                <span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px;padding:1px 6px;border-radius:20px;font-size:0.67rem;font-weight:700;background:rgba(37,99,235,0.08);color:#2563eb;border:1px solid rgba(37,99,235,0.2);vertical-align:middle;"><i class="bi bi-person-walking" style="font-size:0.62rem;"></i>Walk-in</span>
-                                <?php else: ?>
-                                <span style="display:inline-flex;align-items:center;gap:3px;margin-left:5px;padding:1px 6px;border-radius:20px;font-size:0.67rem;font-weight:700;background:rgba(13,110,110,0.08);color:var(--primary);border:1px solid rgba(13,110,110,0.2);vertical-align:middle;"><i class="bi bi-calendar-check" style="font-size:0.62rem;"></i>Booked</span>
-                                <?php endif; ?>
-                            </td>
-                            <!-- Service -->
-                            <td data-label="Service" style="padding:13px 16px;">
-                                <div style="font-size:0.82rem;color:var(--gray-600);font-weight:500;"><?php echo htmlspecialchars($a['service_name'] ?? '—'); ?></div>
-                            </td>
-                            <!-- Doctor -->
-                            <td data-label="Doctor" style="padding:13px 16px;">
-                                <?php if (!empty($a['doctor_name'])): ?>
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,var(--blue-500),var(--blue-400));color:var(--white);font-size:0.71rem;font-weight:700;white-space:nowrap;">
-                                    <i class="bi bi-person-badge" style="font-size:0.68rem;"></i>
-                                    <?php echo htmlspecialchars($a['doctor_name']); ?>
+                            <td data-label="Code">
+                                <span class="ap-code">
+                                    <?php if ($isToday): ?><span class="ap-dot" title="Today"></span><?php endif; ?>
+                                    <?php echo htmlspecialchars($a['appointment_code']); ?>
                                 </span>
+                            </td>
+
+                            <!-- Patient + type chip -->
+                            <td data-label="Patient">
+                                <a href="<?php echo BASE_URL; ?>modules/patients/view.php?id=<?php echo $a['patient_id']; ?>" class="ap-patient"><?php echo htmlspecialchars(ucwords(strtolower($a['patient_name'] ?? ''))); ?></a>
+                                <?php if (($a['type'] ?? 'walk-in') === 'walk-in'): ?>
+                                <span class="ap-chip ap-chip--walkin"><i class="bi bi-person-walking" aria-hidden="true"></i>Walk-in</span>
                                 <?php else: ?>
-                                <span style="font-size:0.78rem;color:var(--gray-300);">Unassigned</span>
+                                <span class="ap-chip ap-chip--booked"><i class="bi bi-calendar-check" aria-hidden="true"></i>Booked</span>
                                 <?php endif; ?>
                             </td>
-                            <!-- Date & Time -->
-                            <td data-label="Date & Time" style="padding:13px 16px;">
-                                <div style="font-size:0.82rem;font-weight:700;color:var(--gray-700);"><?php echo date('M d, Y', strtotime($a['appointment_date'])); ?></div>
-                                <div style="font-size:0.73rem;color:var(--gray-400);margin-top:1px;"><i class="bi bi-clock" style="font-size:0.65rem;"></i> <?php echo date('h:i A', strtotime($a['appointment_time'])); ?></div>
+
+                            <!-- Service -->
+                            <td data-label="Service">
+                                <div class="ap-service"><?php echo htmlspecialchars($a['service_name'] ?? '—'); ?></div>
                             </td>
+
+                            <!-- Doctor -->
+                            <td data-label="Doctor">
+                                <?php if (!empty($a['doctor_name'])): ?>
+                                <span class="ap-doctor"><i class="bi bi-person-badge" aria-hidden="true"></i><?php echo htmlspecialchars($a['doctor_name']); ?></span>
+                                <?php else: ?>
+                                <span class="ap-muted">Unassigned</span>
+                                <?php endif; ?>
+                            </td>
+
+                            <!-- Date & Time -->
+                            <td data-label="Date & Time">
+                                <div class="ap-date">
+                                    <?php echo date('M d, Y', strtotime($a['appointment_date'])); ?>
+                                    <?php if ($isToday): ?><span class="ap-today-tag">Today</span><?php endif; ?>
+                                </div>
+                                <div class="ap-time"><i class="bi bi-clock" aria-hidden="true"></i> <?php echo date('h:i A', strtotime($a['appointment_time'])); ?></div>
+                            </td>
+
                             <!-- Status -->
-                            <td data-label="Status" style="padding:13px 16px;">
-                                <span id="appt-status-badge-<?php echo $a['id']; ?>" data-status="<?php echo $a['status']; ?>" style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:0.73rem;font-weight:700;background:<?php echo $sCfg['bg']; ?>;color:<?php echo $sCfg['color']; ?>;border:1.5px solid <?php echo $sCfg['border']; ?>;">
-                                    <i class="bi <?php echo $sCfg['icon']; ?>" style="font-size:0.68rem;"></i>
+                            <td data-label="Status">
+                                <span id="appt-status-badge-<?php echo $a['id']; ?>" data-status="<?php echo $a['status']; ?>" class="ap-badge">
+                                    <i class="bi <?php echo $sCfg['icon']; ?>" aria-hidden="true"></i>
                                     <?php echo $sCfg['label']; ?>
                                 </span>
                             </td>
-                            <!-- Actions -->
-                            <td data-label="Actions" style="padding:13px 16px;min-width:260px;white-space:nowrap;">
-                                <div style="display:flex;gap:5px;flex-wrap:nowrap;align-items:center;white-space:nowrap;">
-                                    <?php if ($a['status'] === 'confirmed'): ?>
-                                    <a href="<?php echo BASE_URL; ?>modules/treatments/add.php?patient_id=<?php echo $a['patient_id']; ?>&appointment_id=<?php echo $a['id']; ?>"
-                                       style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:8px;background:linear-gradient(135deg,var(--success),var(--success-light));color:var(--white);font-size:0.75rem;font-weight:700;text-decoration:none;box-shadow:0 2px 6px rgba(22,163,74,0.3);white-space:nowrap;">
-                                        <i class="bi bi-person-check-fill"></i> Check-in
-                                    </a>
-                                    <?php elseif ($a['status'] === 'completed'): ?>
-                                    <a href="<?php echo BASE_URL; ?>modules/patients/view.php?id=<?php echo $a['patient_id']; ?>"
-                                       style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:var(--success-bg);color:var(--success);border:1.5px solid var(--success-border);font-size:0.75rem;font-weight:700;text-decoration:none;white-space:nowrap;">
-                                        <i class="bi bi-clipboard2-check"></i> Record
-                                    </a>
-                                    <?php if (!empty($a['bill_id'])): ?>
-                                    <a href="<?php echo BASE_URL; ?>modules/billing/view.php?id=<?php echo $a['bill_id']; ?>"
-                                       style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;font-size:0.75rem;font-weight:700;text-decoration:none;white-space:nowrap;<?php echo $a['bill_status'] === 'paid' ? 'background:linear-gradient(135deg,var(--success),var(--success-light));color:var(--white);box-shadow:0 2px 6px rgba(22,163,74,0.25);' : 'background:var(--warning-bg);color:var(--warning);border:1.5px solid var(--warning-border);'; ?>">
-                                        <i class="bi bi-receipt"></i> <?php echo $a['bill_status'] === 'paid' ? 'Paid' : 'Bill'; ?>
-                                    </a>
-                                    <?php else: ?>
-                                    <a href="<?php echo BASE_URL; ?>modules/billing/create.php?patient_id=<?php echo $a['patient_id']; ?>&appointment_id=<?php echo $a['id']; ?>"
-                                       style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:var(--blue-50);color:var(--primary);border:1.5px solid var(--blue-200);font-size:0.75rem;font-weight:700;text-decoration:none;white-space:nowrap;">
-                                        <i class="bi bi-receipt"></i> Create Bill
-                                    </a>
-                                    <?php endif; ?>
-                                    <?php elseif ($a['status'] === 'pending'): ?>
-                                    <button onclick="openConfirmModal(<?php echo $a['id']; ?>, '<?php echo htmlspecialchars($a['appointment_code'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($a['patient_name'], ENT_QUOTES); ?>')"
-                                       style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:8px;background:var(--blue-50);color:var(--primary);border:1.5px solid var(--blue-200);font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">
-                                        <i class="bi bi-check-lg"></i> Confirm
-                                    </button>
-                                    <?php endif; ?>
-                                    <!-- Print -->
-                                    <a href="<?php echo BASE_URL; ?>modules/print/appointment_slip.php?id=<?php echo $a['id']; ?>"
-                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:var(--gray-50);color:var(--gray-500);border:1.5px solid var(--gray-200);text-decoration:none;font-size:0.8rem;transition:all 0.12s;" title="Print Slip" aria-label="Print appointment slip">
-                                        <i class="bi bi-printer" aria-hidden="true"></i>
-                                    </a>
-                                    <!-- Reschedule / Edit -->
-                                    <button onclick="openRescheduleModal(<?php echo $a['id']; ?>)"
-                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:var(--primary-bg);color:var(--primary);border:1.5px solid var(--blue-200);cursor:pointer;font-size:0.8rem;transition:all 0.12s;" title="Reschedule / Edit" aria-label="Reschedule appointment">
-                                        <i class="bi bi-calendar-week" aria-hidden="true"></i>
-                                    </button>
-                                    <!-- Edit Status -->
-                                    <button onclick="updateStatus(<?php echo $a['id']; ?>, this)"
-                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:var(--gray-50);color:var(--gray-500);border:1.5px solid var(--gray-200);cursor:pointer;font-size:0.8rem;transition:all 0.12s;" title="Update Status" aria-label="Update appointment status">
-                                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
-                                    </button>
-                                    <!-- Delete — admin only -->
-                                    <?php if ($current_user_role === 'admin'): ?>
-                                    <button onclick="confirmDeleteAppt(<?php echo $a['id']; ?>, '<?php echo htmlspecialchars($a['appointment_code'], ENT_QUOTES); ?>')"
-                                       style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;background:var(--danger-bg);color:var(--danger);border:1.5px solid var(--danger-border);cursor:pointer;font-size:0.8rem;transition:all 0.12s;" title="Delete" aria-label="Delete appointment">
-                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                    </button>
-                                    <?php endif; ?>
+
+                            <!-- Actions: main buttons left, icon buttons right -->
+                            <td data-label="Actions" class="act-cell">
+                                <div class="act-row">
+
+                                    <div class="act-primary">
+                                        <?php if ($a['status'] === 'confirmed'): ?>
+                                        <a href="<?php echo BASE_URL; ?>modules/treatments/add.php?patient_id=<?php echo $a['patient_id']; ?>&appointment_id=<?php echo $a['id']; ?>" class="act-btn act-solid-green">
+                                            <i class="bi bi-person-check-fill" aria-hidden="true"></i> Check-in
+                                        </a>
+                                        <?php elseif ($a['status'] === 'completed'): ?>
+                                        <a href="<?php echo BASE_URL; ?>modules/patients/view.php?id=<?php echo $a['patient_id']; ?>" class="act-btn act-soft-green">
+                                            <i class="bi bi-clipboard2-check" aria-hidden="true"></i> Record
+                                        </a>
+                                        <?php if (!empty($a['bill_id'])): ?>
+                                        <a href="<?php echo BASE_URL; ?>modules/billing/view.php?id=<?php echo $a['bill_id']; ?>" class="act-btn <?php echo $a['bill_status'] === 'paid' ? 'act-solid-green' : 'act-soft-amber'; ?>">
+                                            <i class="bi bi-receipt" aria-hidden="true"></i> <?php echo $a['bill_status'] === 'paid' ? 'Paid' : 'Bill'; ?>
+                                        </a>
+                                        <?php else: ?>
+                                        <a href="<?php echo BASE_URL; ?>modules/billing/create.php?patient_id=<?php echo $a['patient_id']; ?>&appointment_id=<?php echo $a['id']; ?>" class="act-btn act-soft-blue">
+                                            <i class="bi bi-receipt" aria-hidden="true"></i> Create Bill
+                                        </a>
+                                        <?php endif; ?>
+                                        <?php elseif ($a['status'] === 'pending'): ?>
+                                        <button type="button" onclick="openConfirmModal(<?php echo $a['id']; ?>, '<?php echo htmlspecialchars($a['appointment_code'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($a['patient_name'], ENT_QUOTES); ?>')" class="act-btn act-soft-blue">
+                                            <i class="bi bi-check-lg" aria-hidden="true"></i> Confirm
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="act-icons">
+                                        <!-- Print -->
+                                        <a href="<?php echo BASE_URL; ?>modules/print/appointment_slip.php?id=<?php echo $a['id']; ?>" class="act-btn act-icon act-icon-gray" title="Print Slip" aria-label="Print appointment slip">
+                                            <i class="bi bi-printer" aria-hidden="true"></i>
+                                        </a>
+                                        <!-- Reschedule / Edit -->
+                                        <button type="button" onclick="openRescheduleModal(<?php echo $a['id']; ?>)" class="act-btn act-icon act-icon-blue" title="Reschedule / Edit" aria-label="Reschedule appointment">
+                                            <i class="bi bi-calendar-week" aria-hidden="true"></i>
+                                        </button>
+                                        <!-- Edit Status -->
+                                        <button type="button" onclick="updateStatus(<?php echo $a['id']; ?>, this)" class="act-btn act-icon act-icon-gray" title="Update Status" aria-label="Update appointment status">
+                                            <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                        </button>
+                                        <!-- Delete — admin only -->
+                                        <?php if ($current_user_role === 'admin'): ?>
+                                        <button type="button" onclick="confirmDeleteAppt(<?php echo $a['id']; ?>, '<?php echo htmlspecialchars($a['appointment_code'], ENT_QUOTES); ?>')" class="act-btn act-icon act-icon-red" title="Delete" aria-label="Delete appointment">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+
                                 </div>
                             </td>
                         </tr>
@@ -426,24 +615,25 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             </div><!-- /.table-responsive -->
         </div><!-- /.mobile-card-table-wrap -->
 
+        <!-- ── 4. Pager ─────────────────────────────────────────── -->
         <?php if ($total_pages > 1): ?>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px;background:var(--white);border:var(--border);border-radius:12px;padding:10px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-            <div style="font-size:0.78rem;color:var(--gray-400);font-weight:600;">
-                Showing <strong style="color:var(--gray-600);"><?php echo number_format($offset + 1); ?>–<?php echo number_format(min($offset + $per_page, $total_count)); ?></strong>
-                of <strong style="color:var(--gray-600);"><?php echo number_format($total_count); ?></strong> appointments
+        <div class="ap-pager">
+            <div class="ap-pager__info">
+                Showing <strong><?php echo number_format($offset + 1); ?>–<?php echo number_format(min($offset + $per_page, $total_count)); ?></strong>
+                of <strong><?php echo number_format($total_count); ?></strong> appointments
             </div>
-            <div style="display:flex;gap:5px;align-items:center;">
+            <div class="ap-pager__nav">
                 <?php if ($page > 1): ?>
-                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $page - 1; ?>" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-600);font-size:0.78rem;font-weight:600;text-decoration:none;transition:all 0.12s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--white)'">
-                    <i class="bi bi-chevron-left"></i> Prev
+                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $page - 1; ?>" class="ap-page">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i> Prev
                 </a>
                 <?php endif; ?>
                 <?php for ($pg = max(1, $page - 2); $pg <= min($total_pages, $page + 2); $pg++): ?>
-                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $pg; ?>" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:all 0.12s;<?php echo $pg === $page ? 'background:linear-gradient(135deg,var(--blue-500),var(--blue-400));color:var(--white);border:none;box-shadow:0 2px 8px rgba(37,99,235,0.3);' : 'border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-600);'; ?>"><?php echo $pg; ?></a>
+                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $pg; ?>" class="ap-page ap-page--num<?php echo $pg === $page ? ' is-current' : ''; ?>"<?php echo $pg === $page ? ' aria-current="page"' : ''; ?>><?php echo $pg; ?></a>
                 <?php endfor; ?>
                 <?php if ($page < $total_pages): ?>
-                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $page + 1; ?>" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-600);font-size:0.78rem;font-weight:600;text-decoration:none;transition:all 0.12s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--white)'">
-                    Next <i class="bi bi-chevron-right"></i>
+                <a href="list.php?<?php echo $filter_qs; ?>page=<?php echo $page + 1; ?>" class="ap-page">
+                    Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </a>
                 <?php endif; ?>
             </div>
