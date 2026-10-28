@@ -1,4 +1,4 @@
-<?php
+v<?php
 require_once '../../includes/config.php';
 require_once '../../includes/db.php';
 require_once '../../includes/auth.php';
@@ -581,9 +581,17 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
 
 /* Quick stats */
 .quick-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-@media (max-width: 480px) {
-    /* 3 cramped columns → 2 columns on small phones (≤375px each card gets ~155px) */
-    .quick-stats { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) {
+    /* Compact + aligned: keep all 3 boxes on ONE row, equal width, equal height,
+       content centred. (Before: 2 columns, so "Total Paid" dropped to a lonely 2nd row.) */
+    .quick-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .qs-card {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-height: 58px; padding: 8px 4px; border-radius: 12px;
+    }
+    .qs-card:hover { transform: none; }
+    .qs-num { font-size: 1.15rem; }
+    .qs-lbl { font-size: 0.6rem; letter-spacing: 0.04em; margin-top: 4px; white-space: nowrap; }
 }
 .qs-card {
     background: var(--white); border: var(--border); border-radius: var(--radius-md);
@@ -636,10 +644,26 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
 /* Mobile tabs */
 .profile-tabs { display: none; }
 @media (max-width: 960px) {
-    .profile-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; scrollbar-width: none; }
-    .profile-tabs::-webkit-scrollbar { display: none; }
-    .ptab { white-space: nowrap; padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--gray-200); background: var(--white); font-size: 0.78rem; font-weight: 600; color: var(--gray-600); cursor: pointer; transition: all 0.18s ease; flex-shrink: 0; }
-    .ptab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    /* Info / Records / Billing — 3 equal, solid buttons that are visible the moment the page opens.
+       Inactive = light teal fill + teal border + dark-teal text. Active = solid teal gradient + white text. */
+    .profile-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 0 4px; margin-bottom: 16px; }
+    .ptab {
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        white-space: nowrap; min-height: 46px; padding: 8px 6px;
+        border-radius: 12px; border: 2px solid var(--primary);
+        background: var(--primary-bg); color: var(--primary-dark);
+        font-size: 0.82rem; font-weight: 700; cursor: pointer;
+        box-shadow: 0 2px 6px rgba(13, 110, 110, 0.16);
+        transition: all 0.18s ease;
+    }
+    .ptab i { font-size: 1rem; }
+    .ptab:active { transform: scale(0.97); }
+    .ptab.active {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        border-color: var(--primary-dark); color: #fff;
+        box-shadow: 0 4px 12px rgba(13, 110, 110, 0.38);
+    }
+    @media (max-width: 360px) { .ptab i { display: none; } .ptab { font-size: 0.76rem; } }
     .tab-section { display: none; }
     .tab-section.active { display: block; }
     .profile-left  { display: none; }
@@ -666,6 +690,8 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
 [data-theme="dark"] .rec-accordion { border-color: #1E293B; }
 [data-theme="dark"] .rec-item + .rec-item { border-top-color: #1E293B; }
 [data-theme="dark"] .qs-card { background: #1E293B; border-color: #334155; }
+[data-theme="dark"] .ptab { background: rgba(20, 168, 168, 0.16); border-color: #14a8a8; color: #7fe3e3; box-shadow: none; }
+[data-theme="dark"] .ptab.active { background: linear-gradient(135deg, #0d6e6e 0%, #14a8a8 100%); border-color: #7fe3e3; color: #fff; }
 [data-theme="dark"] .qs-lbl { color: #90b0cc; }
 [data-theme="dark"] .patient-hero { background: #1E293B; border-color: #334155; }
 [data-theme="dark"] .hero-name { color: #E2E8F0; }
@@ -736,9 +762,9 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
 
         <!-- Mobile Tabs -->
         <div class="profile-tabs">
-            <button class="ptab active" onclick="switchTab('info', this)">Info</button>
-            <button class="ptab" onclick="switchTab('records', this)">Records (<?php echo count($dental_records); ?>)</button>
-            <button class="ptab" onclick="switchTab('billing', this)">Billing (<?php echo count($payments); ?>)</button>
+            <button class="ptab active" onclick="switchTab('info', this)"><i class="bi bi-person-lines-fill"></i> Info</button>
+            <button class="ptab" onclick="switchTab('records', this)"><i class="bi bi-file-earmark-medical"></i> Records (<?php echo count($dental_records); ?>)</button>
+            <button class="ptab" onclick="switchTab('billing', this)"><i class="bi bi-receipt"></i> Billing (<?php echo count($payments); ?>)</button>
         </div>
 
         <!-- Main Grid -->
