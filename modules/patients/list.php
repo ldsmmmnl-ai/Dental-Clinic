@@ -76,11 +76,19 @@ $sort_toggle_url = 'list.php' . ($sort_parts ? '?' . implode('&', $sort_parts) :
 /* On narrow phones each card is ~165px — icon+text side-by-side overflows.
    Stack icon above text so nothing overlaps the decorative bg circle. */
 @media (max-width: 480px) {
-    .stats-bar  { gap: 10px; }
-    .stat-card  { flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; }
-    .stat-icon  { width: 32px; height: 32px; font-size: 0.9rem; }
-    .stat-value { font-size: 1.15rem; }
-    .stat-label { font-size: 0.67rem; }
+    /* COMPACT TILES: icon left, label + number right → each tile is ~54px tall
+       instead of ~180px, so the patient list starts much higher on the screen. */
+    .stats-bar  { gap: 8px; margin-bottom: 12px; }
+    .stats-bar .stat-card {
+        flex-direction: row; align-items: center; gap: 8px;
+        padding: 8px 10px !important; border-radius: 10px;
+        min-height: 0;
+    }
+    .stats-bar .stat-card::after,
+    .stats-bar .stat-card::before { display: none; }      /* drop the big decorative circle */
+    .stats-bar .stat-icon  { width: 28px; height: 28px; font-size: 0.8rem; border-radius: 8px; }
+    .stats-bar .stat-value { font-size: 1.05rem !important; line-height: 1.1; }
+    .stats-bar .stat-label { font-size: 0.58rem; letter-spacing: 0.03em; line-height: 1.2; }
 }
 .stat-card {
     background: var(--white);
@@ -139,6 +147,58 @@ $sort_toggle_url = 'list.php' . ($sort_parts ? '?' . implode('&', $sort_parts) :
     padding: 1px 6px;
 }
 
+/* ── PATIENT CARDS ON PHONES ─────────────────────────────
+   Problem: each patient card was white-on-white inside ANOTHER white card
+   (the outer .card + 12px padding from mobile.css), with a faint 1px border,
+   so it blended into the page.
+   Fix: remove the outer wrapper look, and give every patient its own card with
+   a strong border, a teal accent edge, a tinted header (patient code) and a
+   real shadow so each one clearly stands out from the background. */
+@media (max-width: 600px) {
+    .page-content .card.patients-list-card,
+    .page-content .card.patients-list-card:hover {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        overflow: visible;
+        transform: none;
+    }
+    .page-content .card.patients-list-card > .card-body {
+        padding: 0 !important;                 /* beats mobile.css FIX 17 */
+    }
+    .patients-list-card .mobile-card-table-wrap { overflow: visible; }
+
+    .patients-list-card .mobile-card-table tr {
+        background: #ffffff;
+        border: 1.5px solid #b4c4d6;                 /* clearly visible outline */
+        border-left: 5px solid var(--primary);       /* teal accent edge */
+        border-radius: 14px;
+        margin-bottom: 14px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.10);
+    }
+    /* Tinted header strip = patient code */
+    .patients-list-card .mobile-card-table td:first-child {
+        background: var(--primary-bg);
+        border-bottom: 1.5px solid #b4d8d8;
+        padding: 9px 14px;
+    }
+    .patients-list-card .mobile-card-table td {
+        padding: 7px 14px;                           /* tighter rows → more patients on screen */
+        min-height: 32px;
+        border-bottom: 1px solid #e2eaf2;
+    }
+    .patients-list-card .mobile-card-table td[data-label]::before {
+        color: var(--gray-600);                      /* labels were too faint */
+        min-width: 78px;
+    }
+    .patients-list-card .mobile-card-table td:last-child {
+        background: #f3f8fc;                         /* actions row sits on its own tint */
+        border-top: 1px solid #d6e2ee;
+    }
+}
+
 /* Dark mode */
 [data-theme="dark"] .stat-card { background: #1E293B; border-color: #334155; }
 [data-theme="dark"] .stat-value { color: #E2E8F0; }
@@ -146,6 +206,18 @@ $sort_toggle_url = 'list.php' . ($sort_parts ? '?' . implode('&', $sort_parts) :
 [data-theme="dark"] .pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 [data-theme="dark"] .pill:hover { border-color: var(--primary); color: #A5B4FC; }
 [data-theme="dark"] .age-badge { background: #334155; color: #94A3B8; }
+@media (max-width: 600px) {
+    [data-theme="dark"] .patients-list-card .mobile-card-table tr {
+        background: #1E293B !important;
+        border-color: #3d5a80 !important;
+        border-left-color: var(--primary-light) !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    [data-theme="dark"] .patients-list-card .mobile-card-table td:first-child { background: #0f2a2e; border-bottom-color: #1f4a4f; }
+    [data-theme="dark"] .patients-list-card .mobile-card-table td { border-bottom-color: #2a3b55; }
+    [data-theme="dark"] .patients-list-card .mobile-card-table td:last-child { background: #172338; border-top-color: #2a3b55; }
+    [data-theme="dark"] .patients-list-card .mobile-card-table td[data-label]::before { color: #9ab8d4; }
+}
 </style>
 </head>
 <body>
@@ -237,7 +309,7 @@ $sort_toggle_url = 'list.php' . ($sort_parts ? '?' . implode('&', $sort_parts) :
         </div>
         <?php endif; ?>
 
-        <div class="card">
+        <div class="card patients-list-card">
             <div class="card-body p-0">
                 <div class="mobile-card-table-wrap">
                     <table class="table mb-0 mobile-card-table">
