@@ -37,8 +37,10 @@ $__nav = [
      'match' => ['/dashboard.php'], 'not' => ['/modules/']],
 
     ['group' => 'care', 'title' => 'Patient Care', 'open' => true, 'admin' => false, 'items' => [
-        ['label' => 'Patient Records', 'icon' => 'bi-people-fill',         'href' => 'modules/patients/list.php',        'match' => ['/patients/', '/treatments/']],
-        ['label' => 'Appointments',    'icon' => 'bi-calendar-check-fill', 'href' => 'modules/appointments/list.php',    'match' => ['/appointments/list', '/walkin/']],
+        ['label' => 'Patient Records', 'icon' => 'bi-people-fill',         'href' => 'modules/patients/list.php',        'match' => ['/patients/', '/treatments/'],
+         'badge' => ['key' => 'patients', 'text' => 'NEW PAT', 'noun' => 'new patient', 'seen_on' => '/patients/list', 'class' => 'pat']],
+        ['label' => 'Appointments',    'icon' => 'bi-calendar-check-fill', 'href' => 'modules/appointments/list.php',    'match' => ['/appointments/list', '/walkin/'],
+         'badge' => ['key' => 'appointments', 'text' => 'NEW APP', 'noun' => 'new appointment', 'seen_on' => '/appointments/list', 'class' => 'app']],
         ['label' => 'Calendar',        'icon' => 'bi-calendar3',           'href' => 'modules/appointments/calendar.php','match' => ['/appointments/calendar']],
         ['label' => 'Schedule',        'icon' => 'bi-clock-history',       'href' => 'modules/schedule/manage.php',      'match' => ['/schedule/']],
     ]],
@@ -63,6 +65,27 @@ $__nav = [
     ]],
 ];
 
+// ── "NEW" badges (new patients / new appointments) ───────────────────────────
+// Counts what was added since this user last opened that list. Opening the list clears its badge.
+// Needs the nav_seen table, which sidebar_badges.php creates by itself; if that fails the badges stay hidden.
+$__new_counts = ['patients' => 0, 'appointments' => 0];
+try {
+    require_once __DIR__ . '/sidebar_badges.php';
+    if (isset($conn) && $conn instanceof PDO) {
+        $__uid = (int)($_SESSION['user_id'] ?? 0);
+        // Walk the nav map: if this page IS a badge's list page, mark it seen (so it reads 0 here).
+        foreach ($__nav as $__e) {
+            $__items = isset($__e['group']) ? $__e['items'] : [$__e];
+            foreach ($__items as $__i) {
+                if (!empty($__i['badge']) && strpos($__self, $__i['badge']['seen_on']) !== false) {
+                    sb_mark_seen($conn, $__uid, $__i['badge']['key']);
+                }
+            }
+        }
+        $__new_counts = sb_new_counts($conn, $__uid);
+    }
+} catch (Throwable $e) { error_log('[sidebar] badges: ' . $e->getMessage()); }
+
 // True when the menu item belongs to the page being viewed
 if (!function_exists('sb_is_current')) {
     function sb_is_current(array $it, string $self): bool {
@@ -71,14 +94,30 @@ if (!function_exists('sb_is_current')) {
         return false;
     }
 }
-// Prints one menu link
+// Prints one menu link (with its colourful NEW badge, when the item has one)
 if (!function_exists('sb_render_link')) {
-    function sb_render_link(array $it, bool $current): void {
+    function sb_render_link(array $it, bool $current, array $counts = []): void {
         $cls  = $current ? ' class="active"' : '';
         $aria = $current ? ' aria-current="page"' : '';
+        $badge = '';
+        if (!empty($it['badge'])) {
+            $b    = $it['badge'];
+            $n    = (int)($counts[$b['key']] ?? 0);
+            $hid  = $n > 0 ? '' : ' hidden';
+            $say  = $n . ' ' . $b['noun'] . ($n === 1 ? '' : 's');
+            $k    = htmlspecialchars($b['key'], ENT_QUOTES, 'UTF-8');
+            $c    = htmlspecialchars($b['class'], ENT_QUOTES, 'UTF-8');
+            // count bubble sits on the icon corner; the NEW pill sits at the right end of the row
+            $badge = '<span class="nav-new-count nav-new--' . $c . '" data-nav-badge="' . $k . '" data-noun="' . htmlspecialchars($b['noun'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"' . $hid . '>'
+                   . (function_exists('sb_badge_label') ? sb_badge_label($n) : $n) . '</span>'
+                   . '<span class="nav-new nav-new--' . $c . '" data-nav-badge="' . $k . '" data-noun="' . htmlspecialchars($b['noun'], ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars($say, ENT_QUOTES, 'UTF-8') . '"' . $hid . '>'
+                   . '<span class="nav-new-txt">' . htmlspecialchars($b['text'], ENT_QUOTES, 'UTF-8') . '</span>'
+                   . '<span class="visually-hidden nav-new-sr"> ' . htmlspecialchars($say, ENT_QUOTES, 'UTF-8') . '</span></span>';
+        }
         echo '<li><a href="' . BASE_URL . htmlspecialchars($it['href'], ENT_QUOTES, 'UTF-8') . '"' . $cls . $aria . '>'
            . '<i class="bi ' . htmlspecialchars($it['icon'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i>'
            . '<span class="nav-label">' . htmlspecialchars($it['label'], ENT_QUOTES, 'UTF-8') . '</span>'
+           . $badge
            . '</a></li>' . "\n";
     }
 }
@@ -137,6 +176,94 @@ if (!function_exists('sb_render_link')) {
 @media (prefers-reduced-motion: reduce) {
     #sidebar .nav-group-body, #sidebar .nav-group-list, #sidebar .nav-group-chevron { transition: none !important; }
 }
+
+/* ── Easier-to-see menu buttons ─────────────────────────────────────────────── */
+/* Brighter text, a soft button background, and each icon sits on its own tile.   */
+#sidebar .sidebar-nav li a {
+    color: #e8eff8;
+    font-size: 0.9rem;
+    font-weight: 600;
+    gap: 11px;
+    margin: 3px 9px;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+#sidebar .sidebar-nav li a i.bi {
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #7fe6da;
+    font-size: 1.02rem;
+    opacity: 1;
+    flex-shrink: 0;
+}
+#sidebar .sidebar-nav li a:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.20);
+    color: #fff;
+}
+#sidebar .sidebar-nav li a:hover i.bi { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* The page you are on: bright teal button, white text, gold edge */
+#sidebar .sidebar-nav li a.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff;
+    font-weight: 700;
+    border-color: rgba(255, 255, 255, 0.20);
+    border-left: 3px solid var(--accent-light);
+    padding-left: 8px;
+    box-shadow: 0 4px 16px rgba(13, 110, 110, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+#sidebar .sidebar-nav li a.active i.bi { background: rgba(255, 255, 255, 0.24); color: #fff; }
+
+/* Section titles (PATIENT CARE, INSIGHTS…) and the account box — clearer too */
+#sidebar .nav-group-toggle { color: rgba(255, 255, 255, 0.84); font-size: 0.7rem; font-weight: 800; }
+#sidebar .nav-group-toggle:hover,
+#sidebar .nav-group.has-active .nav-group-title { color: #fff; }
+#sidebar .nav-group-chevron { font-size: 0.78rem; }
+#sidebar .user-role { color: rgba(255, 255, 255, 0.85); }
+#sidebar .user-role span { opacity: 1 !important; }
+
+/* ── Colourful NEW badges (NEW PAT on Patient Records, NEW APP on Appointments) ── */
+/* Two pieces: a count bubble on the icon corner + a NEW pill at the right end of the row. */
+#sidebar .nav-new[hidden], #sidebar .nav-new-count[hidden] { display: none !important; }
+
+#sidebar .nav-new {
+    margin-left: auto; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px 4px 8px; border-radius: 999px;
+    font-size: 0.62rem; font-weight: 800; letter-spacing: 0.09em; line-height: 1;
+    white-space: nowrap; text-transform: uppercase; color: #fff;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.30), 0 3px 10px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(var(--nn), 0.55);
+    animation: navNewPulse 2.4s ease-out infinite;
+}
+#sidebar .nav-new::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: #fff; box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.9);
+}
+#sidebar .nav-new--pat { --nn: 225, 29, 72;  background: linear-gradient(135deg, #be185d 0%, #e11d48 100%); color: #fff; }
+#sidebar .nav-new--app { --nn: 249, 115, 22; background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%); color: #3b1a00; }
+#sidebar .nav-new.nav-new--app::before { background: #3b1a00; box-shadow: none; }
+
+#sidebar .nav-new-count {
+    position: absolute; left: 30px; top: 1px; z-index: 2;
+    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.62rem; font-weight: 800; line-height: 1;
+    box-shadow: 0 0 0 2px #06182e, 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+#sidebar .sidebar-nav li a.active .nav-new-count { left: 28px; }
+
+@keyframes navNewPulse {
+    0%   { box-shadow: 0 0 0 1.5px rgba(255,255,255,.30), 0 3px 10px rgba(0,0,0,.35), 0 0 0 0 rgba(var(--nn), .55); }
+    70%  { box-shadow: 0 0 0 1.5px rgba(255,255,255,.30), 0 3px 10px rgba(0,0,0,.35), 0 0 0 8px rgba(var(--nn), 0); }
+    100% { box-shadow: 0 0 0 1.5px rgba(255,255,255,.30), 0 3px 10px rgba(0,0,0,.35), 0 0 0 0 rgba(var(--nn), 0); }
+}
+/* Icon-only (collapsed) sidebar: keep just the count bubble */
+#sidebar.collapsed .nav-new { display: none; }
+@media (prefers-reduced-motion: reduce) { #sidebar .nav-new { animation: none; } }
 </style>
 
 <nav id="sidebar" aria-label="Main navigation">
@@ -167,7 +294,7 @@ if (!function_exists('sb_render_link')) {
     <ul class="sidebar-nav" role="list">
 <?php foreach ($__nav as $__entry): ?>
 <?php if (!isset($__entry['group'])): ?>
-        <?php sb_render_link($__entry, sb_is_current($__entry, $__self)); ?>
+        <?php sb_render_link($__entry, sb_is_current($__entry, $__self), $__new_counts); ?>
 <?php else: ?>
 <?php
     if (!empty($__entry['admin']) && !$__is_admin) continue;
@@ -184,7 +311,7 @@ if (!function_exists('sb_render_link')) {
             </button>
             <div class="nav-group-body" id="nav-group-<?php echo $__gid; ?>" role="group" aria-labelledby="nav-btn-<?php echo $__gid; ?>">
                 <ul class="nav-group-list" role="list">
-<?php foreach ($__entry['items'] as $__it) { sb_render_link($__it, sb_is_current($__it, $__self)); } ?>
+<?php foreach ($__entry['items'] as $__it) { sb_render_link($__it, sb_is_current($__it, $__self), $__new_counts); } ?>
                 </ul>
             </div>
         </li>
@@ -270,6 +397,39 @@ if (!function_exists('sb_render_link')) {
     requestAnimationFrame(function () {
         requestAnimationFrame(function () { sb.classList.add('nav-ready'); });
     });
+})();
+
+// "NEW" badges: ask the server every 30 s (and when you come back to this tab) so a patient or
+// appointment added while you are on another page shows up without a refresh.
+(function () {
+    var badges = document.querySelectorAll('#sidebar [data-nav-badge]');
+    if (!badges.length) return;
+    var API_URL = <?php echo json_encode(BASE_URL . 'api/nav_badges.php'); ?>;
+
+    function paint(counts) {
+        badges.forEach(function (el) {
+            var n = parseInt(counts[el.getAttribute('data-nav-badge')], 10) || 0;
+            var noun = n + ' ' + el.getAttribute('data-noun') + (n === 1 ? '' : 's');
+            if (el.classList.contains('nav-new-count')) {
+                el.textContent = n > 99 ? '99+' : String(n);
+            } else {
+                el.title = noun;
+                var sr = el.querySelector('.nav-new-sr');
+                if (sr) sr.textContent = ' ' + noun;
+            }
+            if (n > 0) el.removeAttribute('hidden'); else el.setAttribute('hidden', '');
+        });
+    }
+    function poll() {
+        if (document.hidden) return;
+        fetch(API_URL, { credentials: 'same-origin', cache: 'no-store',
+                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) { if (d && d.status === 'success' && d.counts) paint(d.counts); })
+            .catch(function () { /* offline or logged out: leave the badges as they are */ });
+    }
+    setInterval(poll, 30000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
 })();
 </script>
 <?php include __DIR__ . '/bottom-nav.php'; ?>
