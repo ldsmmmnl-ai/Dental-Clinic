@@ -32,6 +32,7 @@ $confirmed= count(array_filter($appointments, fn($a) => $a['status'] === 'confir
     <link rel="icon" type="image/svg+xml" href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
     <meta charset="UTF-8">
     <title>Daily Schedule — <?php echo date('M d, Y', strtotime($date)); ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/fonts.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/print.css">
     <style>@media print { @page { size: landscape; } }</style>
 </head>

@@ -1,17 +1,17 @@
 /* ============================================================
    DentalCare.PH — Premium Design System v2.0
    Aesthetic: Luxury Medical — Deep navy/teal with gold accents
-   Fonts: DM Sans (body) + Clash Display (headings)
+   Fonts: DM Sans (body) + Outfit (headings) — self-hosted
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+/* Fonts are self-hosted — see fonts.css (loaded before this file). */
 
 /* ============================================================
    DESIGN TOKENS
    ============================================================ */
 :root {
     /* Brand — deep teal-navy with gold accent */
+    --on-brand: #ffffff;   /* white text on coloured surfaces — NOT remapped in dark mode (unlike --white) */
     --primary: #0d6e6e;
     --primary-dark: #095454;
     --primary-light: #14a8a8;
@@ -38,7 +38,7 @@
     --gray-700: #2d4160;
     --gray-600: #4a6080;
     --gray-500: #4d6a84;
-    --gray-400: #5c7896;
+    --gray-400: #4e6b8a;
     --gray-300: #c4d0de;
     --gray-200: #dde6ef;
     --gray-150: #eaf0f6;
@@ -99,8 +99,8 @@
     --transition: 0.18s var(--ease);
 
     /* Fonts */
-    --font-body: 'DM Sans', sans-serif;
-    --font-display: 'Clash Display', 'DM Serif Display', serif;
+    --font-body: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Outfit', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ── Dark mode variables ───────────────────────────────────── */
@@ -276,7 +276,7 @@ a {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 1.05rem;
-    color: var(--white);
+    color: var(--on-brand);
     letter-spacing: -0.02em;
     line-height: 1.2;
 }
@@ -362,7 +362,7 @@ a {
 
 .sidebar-nav li a.active {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-    color: var(--white);
+    color: var(--on-brand);
     box-shadow: 0 4px 16px rgba(13, 110, 110, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     font-weight: 600;
     transform: none;
@@ -426,7 +426,7 @@ a {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 0.82rem;
-    color: var(--white);
+    color: var(--on-brand);
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(13, 110, 110, 0.35);
     border: 1.5px solid rgba(255, 255, 255, 0.1);
@@ -445,15 +445,15 @@ a {
 .user-name {
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--white);
+    color: var(--on-brand);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .user-role {
-    font-size: 0.63rem;
-    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.62);
     text-transform: capitalize;
     margin-top: 2px;
 }
@@ -578,7 +578,7 @@ a {
     top: -4px;
     right: -4px;
     background: var(--danger);
-    color: var(--white);
+    color: var(--on-brand);
     font-size: 0.56rem;
     font-weight: 700;
     width: 16px;
@@ -621,7 +621,7 @@ a {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 0.68rem;
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-logout {
@@ -1166,7 +1166,7 @@ a:has(.stat-card):hover .stat-value {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     border-color: var(--primary-dark);
-    color: var(--white);
+    color: var(--on-brand);
     box-shadow: var(--shadow-teal);
 }
 
@@ -1174,7 +1174,7 @@ a:has(.stat-card):hover .stat-value {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
     transform: translateY(-1px);
     box-shadow: var(--shadow-teal-lg);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-primary:active {
@@ -1214,7 +1214,7 @@ a:has(.stat-card):hover .stat-value {
 .btn-outline-primary.show {
     background: var(--primary);
     border-color: var(--primary-dark);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-outline-danger {
@@ -1278,13 +1278,13 @@ a:has(.stat-card):hover .stat-value {
 .btn-danger {
     background: linear-gradient(135deg, var(--danger) 0%, var(--danger-light) 100%);
     border-color: var(--danger);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-danger:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(192, 57, 43, 0.32);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-link {
@@ -1303,38 +1303,38 @@ a:has(.stat-card):hover .stat-value {
 .btn-success {
     background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%);
     border-color: var(--success);
-    color: var(--white);
+    color: var(--on-brand);
     box-shadow: 0 4px 14px rgba(10, 124, 92, 0.28);
 }
 
 .btn-success:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(10, 124, 92, 0.36);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-warning {
     background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%);
     border-color: var(--warning);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-warning:hover {
     transform: translateY(-1px);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 .btn-gold {
     background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
     border-color: var(--accent-dark);
-    color: var(--white);
+    color: var(--on-brand);
     box-shadow: var(--shadow-gold);
 }
 
 .btn-gold:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 28px rgba(201, 168, 76, 0.35);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 /* ============================================================
@@ -1457,9 +1457,9 @@ textarea.form-control {
 }
 
 .alert-info {
-    background: var(--info-bg);
-    border-color: var(--info-border);
-    color: #164e63;
+    background: var(--primary-bg);
+    border-color: #bfe6e6;
+    color: var(--primary-dark);
 }
 
 .alert-warning {
@@ -1596,7 +1596,7 @@ textarea.form-control {
 .page-item.active .page-link {
     background: var(--primary);
     border-color: var(--primary);
-    color: var(--white);
+    color: var(--on-brand);
     box-shadow: var(--shadow-teal);
 }
 
@@ -1662,7 +1662,7 @@ textarea.form-control {
     top: -100%;
     left: 16px;
     background: var(--primary);
-    color: var(--white);
+    color: var(--on-brand);
     padding: 8px 16px;
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     font-size: 0.82rem;
@@ -1872,7 +1872,7 @@ textarea.form-control {
     font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--white);
+    color: var(--on-brand);
     letter-spacing: -0.03em;
 }
 
@@ -1893,7 +1893,7 @@ textarea.form-control {
     font-family: var(--font-display);
     font-size: 2rem;
     font-weight: 700;
-    color: var(--white);
+    color: var(--on-brand);
     letter-spacing: -0.03em;
     line-height: 1.2;
     margin-bottom: 14px;
@@ -2002,7 +2002,7 @@ textarea.form-control {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     border: none;
     border-radius: var(--radius);
-    color: var(--white);
+    color: var(--on-brand);
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
@@ -2078,7 +2078,7 @@ textarea.form-control {
     background: linear-gradient(135deg, #041526 0%, #095454 60%, #0d6e6e 100%) !important;
     border-radius: var(--radius-lg);
     padding: 28px 32px;
-    color: var(--white);
+    color: var(--on-brand);
     position: relative;
     overflow: hidden;
     margin-bottom: 28px;
@@ -2133,7 +2133,7 @@ textarea.form-control {
 
 .welcome-sub {
     font-size: 0.84rem;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.78);
     margin-top: 8px;
     position: relative;
     z-index: 1;
@@ -2156,13 +2156,13 @@ textarea.form-control {
     font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--white);
+    color: var(--on-brand);
     letter-spacing: -0.03em;
 }
 
 .welcome-stat-lbl {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.72);
     margin-top: 2px;
 }
 
@@ -2217,7 +2217,7 @@ textarea.form-control {
 .btn-welcome-outline:hover {
     background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.25);
-    color: var(--white);
+    color: var(--on-brand);
 }
 
 /* ============================================================
@@ -2399,16 +2399,16 @@ textarea.form-control {
           utility classes, backdrop fix, Sora font fallback.
    ============================================================ */
 
-/* ── Missing blue palette (used across modules but never defined) ── */
+/* ── "Blue" accent scale — mapped to the brand teal so every module matches ── */
 :root {
-    --blue-50: #eff6ff;
-    --blue-100: #dbeafe;
-    --blue-200: #bfdbfe;
-    --blue-300: #93c5fd;
-    --blue-400: #60a5fa;
-    --blue-500: #3b82f6;
-    --blue-600: #2563eb;
-    --blue-700: #1d4ed8;
+    --blue-50: var(--primary-bg);
+    --blue-100: #cdeeee;
+    --blue-200: #bfe6e6;
+    --blue-300: #8fd6d6;
+    --blue-400: var(--primary-light);
+    --blue-500: var(--primary);
+    --blue-600: var(--primary);
+    --blue-700: var(--primary-dark);
 
     /* Alias --border-color fallbacks referenced in some modals */
     --border-color: var(--gray-200);
@@ -2417,13 +2417,13 @@ textarea.form-control {
     --font-sora: 'DM Serif Display', 'DM Sans', sans-serif;
 }
 
-/* Dark mode also needs blue palette (no change in value — stays accent blue) */
+/* Dark mode: lighter teal steps for contrast on dark surfaces */
 [data-theme="dark"] {
-    --blue-50: rgba(59, 130, 246, 0.10);
-    --blue-100: rgba(59, 130, 246, 0.18);
-    --blue-200: rgba(59, 130, 246, 0.28);
-    --blue-500: #60a5fa;
-    --blue-600: #93c5fd;
+    --blue-50: rgba(20, 168, 168, 0.10);
+    --blue-100: rgba(20, 168, 168, 0.18);
+    --blue-200: rgba(20, 168, 168, 0.28);
+    --blue-500: #3cc4c4;
+    --blue-600: #7fdcdc;
 }
 
 /* ── Topbar utility classes missing from base stylesheet ─────────── */
@@ -3102,9 +3102,9 @@ a.badge {
 
 /* ── Alert boxes ─────────────────────────────────────────────── */
 [data-theme="dark"] .alert-info {
-    background: rgba(59, 130, 246, 0.12) !important;
-    border-color: rgba(59, 130, 246, 0.25) !important;
-    color: #93c5fd !important;
+    background: rgba(20, 168, 168, 0.12) !important;
+    border-color: rgba(20, 168, 168, 0.28) !important;
+    color: #7fdcdc !important;
 }
 
 [data-theme="dark"] .alert-warning {
@@ -3155,7 +3155,7 @@ a.badge {
 [data-theme="dark"] .pagination-links a.active,
 [data-theme="dark"] .pagination-links button.active {
     background: var(--primary) !important;
-    color: var(--white) !important;
+    color: var(--on-brand) !important;
     border-color: var(--primary) !important;
 }
 
@@ -3351,7 +3351,7 @@ a.badge {
 
 /* ── Quick action buttons ────────────────────────────────────── */
 [data-theme="dark"] .qa-btn.primary {
-    background: #1d4ed8 !important;
+    background: var(--primary) !important;
     color: #fff !important;
 }
 
@@ -3496,154 +3496,45 @@ a.badge {
 }
 
 /* ============================================================
-   SMOOTH ANIMATIONS — Global enhancement pass
+   MOTION — one calm arrival, then everything answers the user
+   ------------------------------------------------------------
+   • The headline numbers (KPI tiles) rise in once, in sequence,
+     and count up (see initPage() in app.js)  ← the one moment
+   • Cards fade in together. Opacity only, fill "backwards": no
+     transform is left behind, so dropdowns, tooltips and modals
+     inside a card are never clipped or re-parented.
+   • No motion on table rows, the top bar, or card hover-lift.
+   • Everything after that responds to something the user did:
+     press, hover, dismiss, navigate.
    ============================================================ */
 
-/* ── 1. Page-entry: cards stagger in on load ──────────────────
-   Cards without .no-anim get a staggered fade+rise on first
-   paint. PJAX sets .no-anim to suppress this on navigation.  */
+/* ── 1. Cards: soft fade, all at once ─────────────────────────  */
 .card:not(.no-anim) {
-    animation: cardEnter 0.38s var(--ease-out) forwards;
+    animation: cardFade 0.25s var(--ease-out) backwards;
 }
 
-@keyframes cardEnter {
-    from {
-        opacity: 0;
-        transform: translateY(14px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes cardFade {
+    from { opacity: 0; }
 }
 
-/* Stagger siblings so they cascade in sequence */
-.card:not(.no-anim):nth-child(1) {
-    animation-delay: 0.04s;
-}
-
-.card:not(.no-anim):nth-child(2) {
-    animation-delay: 0.09s;
-}
-
-.card:not(.no-anim):nth-child(3) {
-    animation-delay: 0.14s;
-}
-
-.card:not(.no-anim):nth-child(4) {
-    animation-delay: 0.19s;
-}
-
-.card:not(.no-anim):nth-child(5) {
-    animation-delay: 0.24s;
-}
-
-.card:not(.no-anim):nth-child(n+6) {
-    animation-delay: 0.28s;
-}
-
-/* ── 2. Table rows fade in ────────────────────────────────────
-   Each tbody row slides in with a tiny delay so the list
-   "builds" rather than popping in all at once.              */
-tbody tr {
-    animation: rowEnter 0.28s var(--ease-out) forwards;
-}
-
-@keyframes rowEnter {
-    from {
-        opacity: 0;
-        transform: translateX(-6px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-tbody tr:nth-child(1) {
-    animation-delay: 0.05s;
-}
-
-tbody tr:nth-child(2) {
-    animation-delay: 0.08s;
-}
-
-tbody tr:nth-child(3) {
-    animation-delay: 0.11s;
-}
-
-tbody tr:nth-child(4) {
-    animation-delay: 0.14s;
-}
-
-tbody tr:nth-child(5) {
-    animation-delay: 0.17s;
-}
-
-tbody tr:nth-child(6) {
-    animation-delay: 0.20s;
-}
-
-tbody tr:nth-child(7) {
-    animation-delay: 0.23s;
-}
-
-tbody tr:nth-child(8) {
-    animation-delay: 0.26s;
-}
-
-tbody tr:nth-child(9) {
-    animation-delay: 0.28s;
-}
-
-tbody tr:nth-child(n+10) {
-    animation-delay: 0.30s;
-}
-
-/* ── 3. KPI / stat cards pop in ──────────────────────────────  */
+/* ── 2. KPI tiles: the single orchestrated moment ─────────────  */
 .dash-kpi,
 .an-kpi-card,
 .stat-card {
-    animation: kpiPop 0.42s var(--ease-spring) forwards;
+    animation: kpiRise 0.42s var(--ease-out) backwards;
 }
 
-@keyframes kpiPop {
+@keyframes kpiRise {
     from {
         opacity: 0;
-        transform: scale(0.93) translateY(8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: translateY(10px);
     }
 }
 
-.dash-kpi:nth-child(1),
-.an-kpi-card:nth-child(1),
-.stat-card:nth-child(1) {
-    animation-delay: 0.05s;
-}
-
-.dash-kpi:nth-child(2),
-.an-kpi-card:nth-child(2),
-.stat-card:nth-child(2) {
-    animation-delay: 0.11s;
-}
-
-.dash-kpi:nth-child(3),
-.an-kpi-card:nth-child(3),
-.stat-card:nth-child(3) {
-    animation-delay: 0.17s;
-}
-
-.dash-kpi:nth-child(4),
-.an-kpi-card:nth-child(4),
-.stat-card:nth-child(4) {
-    animation-delay: 0.23s;
-}
+.dash-kpi:nth-child(1), .an-kpi-card:nth-child(1), .stat-card:nth-child(1) { animation-delay: 0.05s; }
+.dash-kpi:nth-child(2), .an-kpi-card:nth-child(2), .stat-card:nth-child(2) { animation-delay: 0.11s; }
+.dash-kpi:nth-child(3), .an-kpi-card:nth-child(3), .stat-card:nth-child(3) { animation-delay: 0.17s; }
+.dash-kpi:nth-child(4), .an-kpi-card:nth-child(4), .stat-card:nth-child(4) { animation-delay: 0.23s; }
 
 /* ── 4. Alert dismiss — smooth collapse out ──────────────────
    Bootstrap's alert-dismissible removes the element abruptly.
@@ -3691,41 +3582,30 @@ tbody tr:nth-child(n+10) {
     transition: transform 0.08s ease !important;
 }
 
-/* ── 7. Page-title / topbar slides in from top ───────────────  */
-#topbar {
-    animation: topbarIn 0.3s var(--ease-out) forwards;
-}
-
-@keyframes topbarIn {
-    from {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ── 8. Suppress all animations on reduced-motion (already in
-   accessibility.css but restate here for the new keyframes)  */
+/* ── 7. Reduced motion: no animation at all ─────────────────  */
 @media (prefers-reduced-motion: reduce) {
-
-    .card:not(.no-anim),
-    tbody tr,
+    .card,
     .dash-kpi,
     .an-kpi-card,
-    .stat-card,
-    #topbar {
+    .stat-card {
         animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
     }
 }
 
-/* ── 9. Suppress card/row animations on PJAX (set by app.js) ─ */
+/* ── 8. PJAX navigation: don't replay the arrival (set by app.js) ─ */
 .card.no-anim,
-.card.no-anim tbody tr {
+.dash-kpi.no-anim,
+.an-kpi-card.no-anim,
+.stat-card.no-anim {
     animation: none !important;
 }
+
+/* ── 9. Dark-mode contrast corrections (WCAG AA, found with axe-core) ── */
+[data-theme="dark"] .btn-logout,
+[data-theme="dark"] .btn-logout .btn-logout-text { color: #f87171 !important; }
+[data-theme="dark"] .topbar-user-role.badge { color: #5eead4 !important; }
+[data-theme="dark"] .kpi-trend.down { color: #f87171 !important; }
+[data-theme="dark"] .kpi-trend.flat { color: #8fabc8 !important; }
+[data-theme="dark"] .age-badge { color: #cbd5e1 !important; }
+[data-theme="dark"] .view-toggle a { color: #8fabc8 !important; }
+[data-theme="dark"] .view-toggle a.active { color: #5eead4 !important; }

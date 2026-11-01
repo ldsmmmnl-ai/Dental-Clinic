@@ -777,7 +777,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                 <div class="patient-hero">
                     <div class="hero-banner"></div>
                     <div class="hero-avatar-wrap">
-                        <div class="hero-avatar" onclick="openPhotoLightbox()" title="Click to view photo" id="heroAvatarCircle">
+                        <div class="hero-avatar" role="button" tabindex="0" aria-label="View patient photo" onclick="openPhotoLightbox()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhotoLightbox();}" title="Click to view photo" id="heroAvatarCircle">
                             <?php if ($has_photo): ?>
                                 <img src="<?php echo e($photo_url); ?>" alt="Patient photo" id="heroPhotoImg">
                             <?php else: ?>
@@ -1199,7 +1199,7 @@ $photo_url = $has_photo ? BASE_URL . $patient['photo_path'] : '';
                                                         <td style="border:1px solid var(--gray-200);padding:4px 8px;white-space:nowrap;font-size:0.8rem;vertical-align:top;"><?php echo date('M d, Y', strtotime(!empty($rec['bill_created_at']) ? $rec['bill_created_at'] : $rec['visit_date'])); ?></td>
                                                         <td style="border:1px solid var(--gray-200);padding:4px 8px;font-size:0.82rem;vertical-align:top;">
                                                             Payment at Billing
-                                                            <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">Edit or cancel it from <a href="../billing/view.php?id=<?php echo (int)$rec['bill_id']; ?>" style="color:var(--primary);">the bill</a></div>
+                                                            <div style="font-size:0.7rem;color:var(--gray-400);margin-top:2px;">Edit or cancel it from <a href="../billing/view.php?id=<?php echo (int)$rec['bill_id']; ?>" style="color:var(--primary);text-decoration:underline;">the bill</a></div>
                                                         </td>
                                                         <td style="border:1px solid var(--gray-200);padding:4px 8px;text-align:right;font-weight:600;vertical-align:top;color:var(--success);">
                                                             &#8369;<?php echo number_format($__lg_open, 2); ?>

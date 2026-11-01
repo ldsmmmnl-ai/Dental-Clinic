@@ -39,19 +39,37 @@ $billingService = new BillingService($conn);  // constructor injection
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $rows = $billingService->getExportData($filters);
 
+    // Text cells that start with = + - @ could run as formulas when opened in Excel, so a ' is put in front
+    $csv_text = static function ($v): string {
+        $v = (string)$v;
+        return ($v !== '' && strpos("=+-@\t\r", $v[0]) !== false) ? "'" . $v : $v;
+    };
+    $csv_num = static function ($v): string { return number_format((float)$v, 2, '.', ''); };
+
+    log_action(
+        $conn, $_SESSION['user_id'] ?? null, $_SESSION['full_name'] ?? 'Unknown',
+        'Exported billing CSV', 'billing', null, count($rows) . ' bills'
+    );
+
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // UTF-8 byte-order mark so Excel shows the symbols correctly
     fputcsv($out, ['Bill Code','Patient','Patient Code','Service','Amount Due (PHP)',
                    'Amount Paid (PHP)','Balance (PHP)','Payment Method','Reference','Status','Date']);
     foreach ($rows as $r) {
         fputcsv($out, [
-            $r['bill_code'],            $r['patient_name'],          $r['patient_code'],
-            $r['service_name'] ?? '—',  number_format($r['amount_due'],  2),
-            number_format($r['amount_paid'], 2),
-            number_format($r['balance'],     2),
-            $r['payment_method'] ?? '—', $r['payment_ref'] ?? '—',
-            $r['status'],               $r['date_created'],
+            $r['bill_code'],
+            $csv_text($r['patient_name']),
+            $csv_text($r['patient_code']),
+            $csv_text($r['service_name'] ?? '—'),
+            $csv_num($r['amount_due']),
+            $csv_num($r['amount_paid']),
+            $csv_num($r['balance']),
+            $csv_text($r['payment_method'] ?? '—'),
+            $csv_text($r['payment_ref'] ?? '—'),
+            $r['status'],
+            $r['date_created'],
         ]);
     }
     fclose($out);
@@ -216,7 +234,7 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
     color: var(--gray-600);
     border: 1px solid var(--gray-200);
 }
-.method-badge.gcash { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.method-badge.gcash { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
 .method-badge.bank  { background: #eff6ff; color: var(--blue-600); border-color: var(--blue-200); }
 
 /* ── Dark mode ────────────────────────────────────────── */
@@ -252,9 +270,16 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
                 <h5>Billing</h5>
                 <p>Manage patient payments — Cash, GCash, Bank Transfer</p>
             </div>
-            <a href="create.php" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus"></i> Create Bill
-            </a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <a href="list.php?<?php echo htmlspecialchars($filter_qs . 'export=csv', ENT_QUOTES, 'UTF-8'); ?>"
+                   class="btn btn-outline-secondary btn-sm"
+                   title="Download the bills that match the current filters as a CSV file">
+                    <i class="bi bi-filetype-csv" aria-hidden="true"></i> Export CSV
+                </a>
+                <a href="create.php" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus"></i> Create Bill
+                </a>
+            </div>
         </div>
 
         <!-- KPI Cards -->
@@ -292,7 +317,7 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             <input type="text" name="search" class="form-control form-control-sm" style="max-width:220px;"
                 placeholder="🔍  Patient or bill code..."
                 value="<?php echo e($search); ?>">
-            <select name="status" class="form-select form-select-sm" style="max-width:140px;">
+            <select name="status" aria-label="Filter by status" class="form-select form-select-sm" style="max-width:140px;">
                 <option value="">All Status</option>
                 <option value="unpaid"  <?php echo $status_filter === 'unpaid'  ? 'selected' : ''; ?>>Unpaid</option>
                 <option value="partial" <?php echo $status_filter === 'partial' ? 'selected' : ''; ?>>Partial</option>
@@ -300,12 +325,12 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
             </select>
             <div style="display:flex;flex-direction:column;gap:1px;">
                 <label style="font-size:0.68rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.04em;line-height:1;margin-bottom:2px;">From</label>
-                <input type="date" name="date_from" class="form-control form-control-sm" style="max-width:150px;"
+                <input type="date" name="date_from" aria-label="From date" class="form-control form-control-sm" style="max-width:150px;"
                     value="<?php echo e($date_from); ?>">
             </div>
             <div style="display:flex;flex-direction:column;gap:1px;">
                 <label style="font-size:0.68rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.04em;line-height:1;margin-bottom:2px;">To</label>
-                <input type="date" name="date_to" class="form-control form-control-sm" style="max-width:150px;"
+                <input type="date" name="date_to" aria-label="To date" class="form-control form-control-sm" style="max-width:150px;"
                     value="<?php echo e($date_to); ?>">
             </div>
             <button type="submit" class="btn btn-sm btn-primary">Filter</button>

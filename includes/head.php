@@ -41,9 +41,10 @@ $_bootstrap_icons_local = file_exists($_app_root . '/assets/css/bootstrap-icons.
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 <?php endif; ?>
 
-<!-- Font preconnect hints (actual @import is in style.css — no double-load) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<!-- Fonts are self-hosted (assets/css/fonts.css): preload the two files every page needs -->
+<link rel="preload" href="<?php echo BASE_URL; ?>assets/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="<?php echo BASE_URL; ?>assets/fonts/outfit-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/fonts.css">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/style.css">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/enhanced.css">
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/accessibility.css">
@@ -53,9 +54,11 @@ $_bootstrap_icons_local = file_exists($_app_root . '/assets/css/bootstrap-icons.
 // ui-fixes loads LAST so it can override; ?v= makes browsers fetch the new copy after every change
 $_ui_css_v = @filemtime($_app_root . '/assets/css/ui-fixes.css') ?: 1;
 $_ui_js_v  = @filemtime($_app_root . '/assets/js/ui-fixes.js')  ?: 1;
+$_motion_js_v = @filemtime($_app_root . '/assets/js/motion.js') ?: 1;
 ?>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/ui-fixes.css?v=<?php echo $_ui_css_v; ?>">
 <script src="<?php echo BASE_URL; ?>assets/js/ui-fixes.js?v=<?php echo $_ui_js_v; ?>"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/motion.js?v=<?php echo $_motion_js_v; ?>"></script>
 <script>
 (function () {
     var t = localStorage.getItem('theme');

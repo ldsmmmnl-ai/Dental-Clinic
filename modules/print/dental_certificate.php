@@ -34,6 +34,7 @@ $cert_num = 'DC-' . str_pad($id, 5, '0', STR_PAD_LEFT);
     <link rel="icon" type="image/svg+xml" href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
     <meta charset="UTF-8">
     <title>Dental Certificate — <?php echo e($cert_num); ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/fonts.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/print.css">
     <style>
     body { font-family: 'DM Sans', sans-serif; background: #f1f5f9; margin: 0; }

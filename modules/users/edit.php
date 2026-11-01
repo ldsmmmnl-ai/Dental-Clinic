@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 /* Profile hero card */
 .eu-hero {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 60%, #1e3a8a 100%);
+    background: linear-gradient(135deg, #0d6e6e 0%, #095454 60%, #072040 100%);
     border-radius: 16px;
     padding: 28px 32px;
     display: flex;
@@ -242,8 +242,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-size: 0.9rem;
     flex-shrink: 0;
 }
-.eu-section-icon.blue  { background: #eff6ff; color: #1d4ed8; }
-.eu-section-icon.green { background: #f0fdf4; color: #16a34a; }
+.eu-section-icon.blue  { background: var(--primary-bg); color: var(--primary); }
+.eu-section-icon.green { background: #f0fdf4; color: #15803d; }
 .eu-section-icon.amber { background: #fffbeb; color: #d97706; }
 .eu-section-title { font-size: 0.9rem; font-weight: 700; color: var(--gray-800, #1f2937); margin: 0; }
 .eu-section-sub   { font-size: 0.75rem; color: var(--gray-400, #9ca3af); margin: 0; }
@@ -307,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     border-radius: 0 0 14px 14px;
 }
 .eu-footer .btn-save {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, var(--primary-light, #14a8a8), var(--primary));
     color: #fff;
     border: none;
     padding: 10px 28px;
@@ -446,7 +446,7 @@ div:hover > #euRemoveBtn { opacity: 1 !important; pointer-events: auto !importan
                         <div class="col-md-6">
                             <label class="eu-label">Username</label>
                             <div class="eu-readonly">
-                                <i class="bi bi-at" style="color:#1d4ed8;font-size:1rem;"></i>
+                                <i class="bi bi-at" style="color:var(--primary);font-size:1rem;"></i>
                                 <?php echo htmlspecialchars($user['username']); ?>
                             </div>
                             <div style="font-size:0.72rem;color:var(--gray-400);margin-top:4px;">
@@ -458,7 +458,7 @@ div:hover > #euRemoveBtn { opacity: 1 !important; pointer-events: auto !importan
                             <?php if ($id === $current_user_id): ?>
                                 <input type="hidden" name="role" value="<?php echo htmlspecialchars($user['role']); ?>">
                                 <div class="eu-readonly">
-                                    <i class="bi bi-shield-fill" style="color:#1d4ed8;"></i>
+                                    <i class="bi bi-shield-fill" style="color:var(--primary);"></i>
                                     <?php echo htmlspecialchars($role_label); ?>
                                 </div>
                                 <div style="font-size:0.72rem;color:var(--gray-400);margin-top:4px;">

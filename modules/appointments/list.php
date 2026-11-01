@@ -248,6 +248,7 @@ $filter_qs = $filter_parts ? implode('&', $filter_parts) . '&' : '';
 /* Status badge (colour follows data-status, so the live update in the page script keeps working) */
 .ap-badge {
     display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     padding: 4px 11px; border-radius: 999px; font-size: 0.74rem; font-weight: 700;
     background: var(--gray-100); color: var(--gray-700); border: 1.5px solid var(--gray-300);
 }
@@ -1021,6 +1022,7 @@ function _applyStatusBadge(badge, status) {
         if (nodes[n].nodeType === 3) { badge.removeChild(nodes[n]); break; }
     }
     badge.appendChild(document.createTextNode('\n                                    ' + cfg.label + '\n                                '));
+    if (window.Motion) window.Motion.pop(badge);   // short scale pop (skipped for reduced-motion users)
 }
 
 function saveStatus() {
@@ -1042,7 +1044,8 @@ function saveStatus() {
     .then(data => {
         if (data.status === 'success') {
             // Server confirmed — do a silent reload to refresh action buttons
-            cleanReload();
+            // Wait a moment so the badge pop is visible before the page reloads (0 ms for reduced-motion users)
+            setTimeout(cleanReload, window.Motion ? window.Motion.delay() : 0);
         } else if (data.status === 'no_record_warning') {
             pendingCompleteId = data.appt_id;
             getModal('noRecordModal').show();
@@ -1610,7 +1613,7 @@ function submitWalkin() {
                     '<td data-label="Code" style="padding:13px 16px;vertical-align:middle;"><span style="font-size:0.79rem;font-weight:700;color:var(--primary);font-family:monospace;">' + (appt.appt_code||'--') + '</span></td>'
                     + '<td data-label="Patient" style="padding:13px 16px;vertical-align:middle;"><div style="font-size:0.85rem;font-weight:700;color:var(--gray-900);">' + (appt.patient_name||'--') + returningBadge + '</div></td>'
                     + '<td data-label="Service" style="padding:13px 16px;vertical-align:middle;"><div style="font-size:0.82rem;color:var(--gray-600);font-weight:500;">' + (appt.service||'--') + '</div></td>'
-                    + '<td data-label="Doctor" style="padding:13px 16px;vertical-align:middle;"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,var(--blue-500),var(--blue-400));color:var(--white);font-size:0.71rem;font-weight:700;white-space:nowrap;"><i class="bi bi-person-badge" style="font-size:0.68rem;"></i>' + (appt.doctor_name ? appt.doctor_name : 'Any') + '</span></td>'
+                    + '<td data-label="Doctor" style="padding:13px 16px;vertical-align:middle;"><span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,var(--blue-500),var(--blue-400));color:var(--on-brand);font-size:0.71rem;font-weight:700;white-space:nowrap;"><i class="bi bi-person-badge" style="font-size:0.68rem;"></i>' + (appt.doctor_name ? appt.doctor_name : 'Any') + '</span></td>'
                     + '<td data-label="Date &amp; Time" style="padding:13px 16px;vertical-align:middle;"><div style="font-size:0.82rem;font-weight:700;color:var(--gray-700);">' + dateLabel + '</div><div style="font-size:0.73rem;color:var(--gray-400);margin-top:1px;"><i class="bi bi-clock" style="font-size:0.65rem;"></i> ' + timeLabel + '</div></td>'
                     + '<td data-label="Status" style="padding:13px 16px;vertical-align:middle;"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:20px;font-size:0.73rem;font-weight:700;background:var(--warning-bg);color:var(--warning);border:1.5px solid var(--warning-border);"><i class="bi bi-clock-history" style="font-size:0.68rem;"></i> Pending</span></td>'
                     + '<td data-label="Actions" style="padding:13px 16px;vertical-align:middle;"><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">' + cBtn + pBtn + eBtn + dBtn + '</div></td>';

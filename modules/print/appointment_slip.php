@@ -30,6 +30,7 @@ if (!$appt) { header('Location: ../appointments/list.php'); exit(); }
     <link rel="icon" type="image/svg+xml" href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
     <meta charset="UTF-8">
     <title>Appointment Slip — <?php echo e($appt['appointment_code']); ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/fonts.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/print.css">
 </head>
 <body>

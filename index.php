@@ -422,8 +422,11 @@ if ($view === 'otp_reset') {
     <link rel="icon"             type="image/png" sizes="32x32" href="<?php echo BASE_URL; ?>assets/images/favicon-32.png">
     <link rel="icon"             type="image/png" sizes="16x16" href="<?php echo BASE_URL; ?>assets/images/favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180"           href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
-    <meta name="theme-color" content="#2563eb">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <meta name="theme-color" content="#0d6e6e">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/bootstrap-icons.css">
+    <link rel="preload" href="<?php echo BASE_URL; ?>assets/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<?php echo BASE_URL; ?>assets/fonts/outfit-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/fonts.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/style.css">
 
     <script>
@@ -434,145 +437,68 @@ if ($view === 'otp_reset') {
         }
     })();
     </script>
-    <style>
-    /* ── LOGIN PAGE ─────────────────────────────────────────── */
-    body.login-page {
-        display: flex; align-items: center; justify-content: center;
-        min-height: 100vh; margin-left: 0;
-        background-color: #1e3a8a;
-        background-image:
-            linear-gradient(135deg, rgba(15,23,42,0.72) 0%, rgba(30,64,175,0.65) 100%),
-            url('assets/images/cap.jpg');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        position: relative;
-        overflow: hidden;
-        padding: 16px;
-    }
-
-    /* Plain centered card */
-    .login-wrap {
-        width: 100%;
-        max-width: 400px;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.22);
-        padding: 44px 40px 36px;
-        animation: fadeUp 0.5s var(--ease-spring, ease);
-        position: relative; z-index: 1;
-    }
-    @keyframes fadeUp {
-        from { opacity:0; transform:translateY(22px) scale(0.97); }
-        to   { opacity:1; transform:translateY(0) scale(1); }
-    }
-    /* Small staggered cascade for the brand + heading — card arrives,
-       then the icon pops in, then the heading rises in behind it. */
-    @keyframes popIn {
-        from { opacity:0; transform:scale(0.4); }
-        to   { opacity:1; transform:scale(1); }
-    }
-    @keyframes riseIn {
-        from { opacity:0; transform:translateY(8px); }
-        to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* Icon + brand at top */
-    .login-brand {
-        display: flex; flex-direction: column; align-items: center;
-        margin-bottom: 28px;
-    }
-    .login-brand-icon {
-        width: 72px; height: 72px;
-        background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
-        border-radius: 20px;
-        display: flex; align-items: center; justify-content: center;
-        margin-bottom: 14px;
-        box-shadow: 0 4px 14px rgba(37,99,235,0.35);
-        animation: popIn 0.45s var(--ease-spring, ease) 0.1s both;
-    }
-    .login-brand-icon svg {
-        width: 40px; height: 40px;
-    }
-    .login-brand-sub {
-        font-size: 0.7rem; color: #9ca3af; margin-top: 2px;
-        text-transform: uppercase; letter-spacing: 0.1em;
-        animation: riseIn 0.35s ease-out 0.3s both;
-    }
-
-    .form-heading  { font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 20px; text-align: center; animation: riseIn 0.35s ease-out 0.22s both; }
-    .form-subheading { font-size: 0.8rem; color: #9ca3af; margin-bottom: 22px; text-align: center; }
-
-    /* Remember me row */
-    .remember-row {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 20px; font-size: 0.82rem;
-    }
-    .remember-row label {
-        display: flex; align-items: center; gap: 7px;
-        color: #4b5563; cursor: pointer; user-select: none;
-        font-weight: 400; margin: 0;
-    }
-    .remember-row input[type="checkbox"] {
-        width: 15px; height: 15px; accent-color: #2563eb;
-        cursor: pointer; flex-shrink: 0;
-    }
-    .remember-row a { color: #2563eb; text-decoration: none; font-size: 0.82rem; }
-    .remember-row a:hover { text-decoration: underline; }
-
-    @media (max-width: 480px) {
-        .login-wrap { padding: 32px 22px 28px; }
-    }
-
-    /* ── DARK MODE ──────────────────────────────────────────── */
-    [data-theme="dark"] body.login-page {
-        background-color: #0f172a;
-        background-image:
-            linear-gradient(135deg, rgba(5,8,20,0.55) 0%, rgba(10,20,50,0.50) 100%),
-            url('assets/images/cap.jpg');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
-    [data-theme="dark"] .login-wrap        { background: #1e293b; }
-    [data-theme="dark"] .login-brand-icon  { background: linear-gradient(145deg, #1e40af 0%, #1e3a8a 100%); }
-    [data-theme="dark"] .form-heading      { color: #e2e8f0; }
-    [data-theme="dark"] .remember-row label { color: #94a3b8; }
-    </style>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/login.css">
 </head>
 <body class="login-page">
 
-<div class="login-wrap">
+<div class="login-shell">
 
-    <!-- BRAND HEADER -->
-    <div class="login-brand">
-        <?php
-        // Clinic logo from Settings → Clinic Settings ('' = keep the default tooth icon)
-        $__login_logo = '';
-        try {
-            if (!function_exists('clinic_settings')) require_once __DIR__ . '/includes/clinic_settings.php';
-            $__login_logo = clinic_settings($conn)['logo_url'] ?? '';
-        } catch (Throwable $e) { $__login_logo = ''; }
-        ?>
-        <div class="login-brand-icon" id="loginBrandIcon"<?php if ($__login_logo !== ''): ?> style="background:#fff;width:96px;height:96px;padding:6px;"<?php endif; ?>>
+<!-- BRAND PANEL -->
+<?php
+$__cs = [];
+try {
+    if (!function_exists('clinic_settings')) require_once __DIR__ . '/includes/clinic_settings.php';
+    $__cs = clinic_settings($conn);
+} catch (Throwable $e) { $__cs = []; }
+$__login_logo = $__cs['logo_url'] ?? '';
+$__clinic_name = trim($__cs['name'] ?? '') ?: APP_NAME;
+$__clinic_sub  = trim($__cs['subtitle'] ?? '');
+?>
+<aside class="login-aside">
+    <!-- Tooth outline: drawn once by assets/js/login-draw.js (anime.js). The class below hides it until the script is ready,
+         and login.css reveals it anyway after 3s if the script never loads. -->
+    <script>document.documentElement.classList.add('js-draw');</script>
+    <svg class="login-aside-mark" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="0.4" stroke-linejoin="round" aria-hidden="true"><path d="M22 8C17 8 10 12 10 22C10 28 11 33 13 38C15 43 17 52 20 54C21.5 55 23 54 24 52C25.5 49 26 44 28 42C29 41 30 41 32 41C34 41 35 41 36 42C38 44 38.5 49 40 52C41 54 42.5 55 44 54C47 52 49 43 51 38C53 33 54 28 54 22C54 12 47 8 42 8C38 8 35 10 32 11C29 10 26 8 22 8Z"/></svg>
+    <script src="<?php echo BASE_URL; ?>assets/js/login-draw.js?v=<?php echo @filemtime(__DIR__ . '/assets/js/login-draw.js') ?: 1; ?>" defer></script>
+
+    <div class="login-lockup">
+        <div class="login-brand-icon<?php if ($__login_logo !== ''): ?> has-logo<?php endif; ?>" id="loginBrandIcon">
             <?php if ($__login_logo !== ''): ?>
-            <img src="<?php echo htmlspecialchars($__login_logo, ENT_QUOTES, 'UTF-8'); ?>" alt="Clinic logo"
-                 style="width:100%;height:100%;object-fit:contain;display:block;border-radius:14px;"
-                 onerror="this.style.display='none';var s=document.getElementById('loginToothSvg');if(s)s.style.display='block';var w=document.getElementById('loginBrandIcon');if(w){w.style.background='';w.style.width='';w.style.height='';w.style.padding='';}">
+            <img src="<?php echo htmlspecialchars($__login_logo, ENT_QUOTES, 'UTF-8'); ?>" alt=""
+                 class="login-logo-img"
+                 onerror="this.style.display='none';var s=document.getElementById('loginToothSvg');if(s)s.style.display='block';var w=document.getElementById('loginBrandIcon');if(w){w.classList.remove('has-logo');}">
             <?php endif; ?>
-            <!-- Clean tooth SVG -->
-            <svg id="loginToothSvg"<?php if ($__login_logo !== ''): ?> style="display:none;"<?php endif; ?> viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg id="loginToothSvg"<?php if ($__login_logo !== ''): ?> style="display:none;"<?php endif; ?> viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M22 8C17 8 10 12 10 22C10 28 11 33 13 38C15 43 17 52 20 54C21.5 55 23 54 24 52C25.5 49 26 44 28 42C29 41 30 41 32 41C34 41 35 41 36 42C38 44 38.5 49 40 52C41 54 42.5 55 44 54C47 52 49 43 51 38C53 33 54 28 54 22C54 12 47 8 42 8C38 8 35 10 32 11C29 10 26 8 22 8Z" fill="white" opacity="0.95"/>
-                <path d="M28 42C28 38 29.5 35 32 35C34.5 35 36 38 36 42" stroke="rgba(37,99,235,0.3)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
             </svg>
         </div>
-        <div class="login-brand-sub"></div>
+        <div>
+            <div class="login-lockup-name"><?php echo htmlspecialchars($__clinic_name); ?></div>
+            <?php if ($__clinic_sub !== ''): ?><div class="login-lockup-sub"><?php echo htmlspecialchars($__clinic_sub); ?></div><?php endif; ?>
+        </div>
     </div>
+
+    <div class="login-pitch">
+        <h1>From the first booking to the final bill.</h1>
+        <p>Appointments, treatment records and payments for your clinic, together in one place.</p>
+        <ol class="login-flow" aria-label="Patient visit flow">
+            <li style="--i:0">Appointment</li>
+            <li style="--i:1">Check-in</li>
+            <li style="--i:2">Treatment</li>
+            <li style="--i:3">Billing</li>
+            <li style="--i:4">Done</li>
+        </ol>
+    </div>
+</aside>
+
+<!-- FORM PANEL -->
+<main class="login-main" id="main">
+<div class="login-wrap">
 
     <!-- FORM AREA -->
 
     <?php if ($view === 'otp_reset'): ?>
-    <div class="form-heading"><i class="bi bi-shield-lock" style="color:#1d4ed8;"></i> Verify OTP</div>
+    <div class="form-heading"><i class="bi bi-shield-lock" style="color:var(--primary);"></i> Verify OTP</div>
     <div class="form-subheading">Enter the 6-digit code sent to your email</div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
@@ -583,8 +509,8 @@ if ($view === 'otp_reset') {
             <i class="bi bi-exclamation-triangle-fill"></i> Email delivery failed — code shown here
         </div>
         <div style="font-size:0.8rem;color:#78350f;margin-bottom:8px;">Check your SMTP settings in .env — your one-time code is:</div>
-        <div style="font-size:2rem;font-weight:800;letter-spacing:0.45em;color:#1d4ed8;
-                    background:#eff6ff;padding:10px 20px;border-radius:8px;display:inline-block;">
+        <div style="font-size:2rem;font-weight:800;letter-spacing:0.45em;color:var(--primary);
+                    background:var(--primary-bg);padding:10px 20px;border-radius:8px;display:inline-block;">
             <?php echo htmlspecialchars($demo_otp); ?>
         </div>
         <div style="font-size:0.72rem;color:#92400e;margin-top:8px;">
@@ -612,13 +538,13 @@ if ($view === 'otp_reset') {
         <a href="index.php" style="flex:1;text-align:center;font-size:0.82rem;color:#6b7280;text-decoration:none;padding:8px;border:1px solid #e5e7eb;border-radius:8px;display:block;">
             <i class="bi bi-arrow-left"></i> Back to Login
         </a>
-        <a href="index.php?view=forgot" style="flex:1;text-align:center;font-size:0.82rem;color:#1d4ed8;text-decoration:none;padding:8px;border:1px solid #dbeafe;border-radius:8px;display:block;background:#eff6ff;">
+        <a href="index.php?view=forgot" style="flex:1;text-align:center;font-size:0.82rem;color:var(--primary);text-decoration:none;padding:8px;border:1px solid #bfe6e6;border-radius:8px;display:block;background:var(--primary-bg);">
             <i class="bi bi-arrow-repeat"></i> Request New OTP
         </a>
     </div>
 
     <?php elseif ($view === 'login_otp'): ?>
-    <div class="form-heading"><i class="bi bi-shield-lock-fill" style="color:#1d4ed8;"></i> Two-Factor Verification</div>
+    <div class="form-heading"><i class="bi bi-shield-lock-fill" style="color:var(--primary);"></i> Two-Factor Verification</div>
     <div class="form-subheading">A 6-digit code was sent to your email and phone</div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
@@ -629,7 +555,7 @@ if ($view === 'otp_reset') {
             <i class="bi bi-info-circle-fill"></i> Demo Mode — No Email/SMS Configured
         </div>
         <div style="font-size:0.8rem;color:#78350f;margin-bottom:8px;">Your one-time login code:</div>
-        <div style="font-size:2rem;font-weight:800;letter-spacing:0.45em;color:#1d4ed8;background:#eff6ff;padding:10px 20px;border-radius:8px;display:inline-block;">
+        <div style="font-size:2rem;font-weight:800;letter-spacing:0.45em;color:var(--primary);background:var(--primary-bg);padding:10px 20px;border-radius:8px;display:inline-block;">
             <?php echo htmlspecialchars($demo_otp_login); ?>
         </div>
         <div style="font-size:0.72rem;color:#92400e;margin-top:8px;">
@@ -659,7 +585,7 @@ if ($view === 'otp_reset') {
     </div>
 
     <?php elseif ($view === 'forgot'): ?>
-    <div class="form-heading"><i class="bi bi-key" style="color:#1d4ed8;"></i> Forgot Password</div>
+    <div class="form-heading"><i class="bi bi-key" style="color:var(--primary);"></i> Forgot Password</div>
     <div class="form-subheading">Enter your username or email to receive an OTP</div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
@@ -691,7 +617,7 @@ if ($view === 'otp_reset') {
     </p>
 
     <?php elseif ($view === 'reset'): ?>
-    <div class="form-heading"><i class="bi bi-lock-fill" style="color:#1d4ed8;"></i> Set New Password</div>
+    <div class="form-heading"><i class="bi bi-lock-fill" style="color:var(--primary);"></i> Set New Password</div>
     <div class="form-subheading">Choose a strong new password for your account</div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
@@ -743,11 +669,10 @@ if ($view === 'otp_reset') {
 
     <?php else: ?>
     <!-- LOGIN VIEW -->
-    <div class="form-heading">Sign in to your account</div>
-    <div style="font-size:0.72rem;color:#64748b;background:#f1f5f9;border-radius:8px;padding:8px 12px;margin-bottom:14px;line-height:1.5;">
-        <i class="bi bi-shield-lock-fill"></i> <strong>Authorized staff only.</strong>
-        Patient information in this system is confidential and must not be shared or disclosed to anyone.
-    </div>
+    <div class="login-eyebrow" id="loginGreeting">Welcome back</div>
+    <div class="form-heading">Sign in</div>
+    <div class="form-subheading">Use your clinic account to continue.</div>
+    <div class="login-note"><i class="bi bi-shield-lock-fill"></i><span><strong>Authorized staff only.</strong> Patient information in this system is confidential and must not be shared or disclosed to anyone.</span></div>
     <?php if ($error): ?>
         <div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
@@ -817,15 +742,29 @@ if ($view === 'otp_reset') {
         </button>
     </form>
 
+    <ul class="login-trust" aria-label="Security features">
+        <li><i class="bi bi-shield-check" aria-hidden="true"></i>Role-based access</li>
+        <li><i class="bi bi-clock-history" aria-hidden="true"></i>Activity logged</li>
+        <li><i class="bi bi-lock-fill" aria-hidden="true"></i>Login lockout</li>
+    </ul>
+
     <?php endif; ?>
 
-    <p style="text-align:center;font-size:0.72rem;color:#9ca3af;margin-top:24px;">
+    <p class="login-foot">
         <?php echo APP_NAME; ?> &copy; <?php echo date('Y'); ?>
     </p>
 
 </div><!-- end .login-wrap -->
+</main>
+</div><!-- end .login-shell -->
 
 <script>
+(function () {
+    var g = document.getElementById('loginGreeting');
+    if (!g) return;
+    var h = new Date().getHours();
+    g.textContent = h < 12 ? 'Good morning' : (h < 18 ? 'Good afternoon' : 'Good evening');
+})();
 var togPw = document.getElementById('togglePw');
 if (togPw) togPw.addEventListener('click', function() {
     var inp = document.getElementById('passwordInput');

@@ -23,6 +23,65 @@ if (!function_exists('nav_active')) {
         return strpos($_SERVER['PHP_SELF'], $path) !== false ? 'active' : '';
     }
 }
+
+// ── Navigation map ────────────────────────────────────────────────────────────
+// To add, move or rename a menu item, edit this list — the sidebar builds itself.
+//   'match' = URL fragments that mark the item as the current page
+//   'not'   = URL fragments that cancel a match
+//   group   = collapsible section ('open' => starts expanded, 'admin' => admins only)
+$__is_admin = function_exists('is_admin') && is_admin();
+$__self     = $_SERVER['PHP_SELF'] ?? '';
+
+$__nav = [
+    ['label' => 'Dashboard', 'icon' => 'bi-house-door-fill', 'href' => 'dashboard.php',
+     'match' => ['/dashboard.php'], 'not' => ['/modules/']],
+
+    ['group' => 'care', 'title' => 'Patient Care', 'open' => true, 'admin' => false, 'items' => [
+        ['label' => 'Patient Records', 'icon' => 'bi-people-fill',         'href' => 'modules/patients/list.php',        'match' => ['/patients/', '/treatments/']],
+        ['label' => 'Appointments',    'icon' => 'bi-calendar-check-fill', 'href' => 'modules/appointments/list.php',    'match' => ['/appointments/list', '/walkin/']],
+        ['label' => 'Calendar',        'icon' => 'bi-calendar3',           'href' => 'modules/appointments/calendar.php','match' => ['/appointments/calendar']],
+        ['label' => 'Schedule',        'icon' => 'bi-clock-history',       'href' => 'modules/schedule/manage.php',      'match' => ['/schedule/']],
+    ]],
+
+    ['label' => 'Billing', 'icon' => 'bi-receipt', 'href' => 'modules/billing/list.php', 'match' => ['/billing/']],
+
+    ['group' => 'insights', 'title' => 'Insights', 'open' => false, 'admin' => true, 'items' => [
+        ['label' => 'Analytics', 'icon' => 'bi-bar-chart-fill',                'href' => 'modules/analytics/dashboard.php', 'match' => ['/analytics/']],
+        ['label' => 'Reports',   'icon' => 'bi-file-earmark-bar-graph-fill',   'href' => 'modules/reports/index.php',       'match' => ['/reports/']],
+    ]],
+
+    ['group' => 'manage', 'title' => 'Manage', 'open' => false, 'admin' => true, 'items' => [
+        ['label' => 'Users',    'icon' => 'bi-person-gear',        'href' => 'modules/users/list.php',    'match' => ['/users/']],
+        ['label' => 'Services', 'icon' => 'bi-grid-fill',          'href' => 'modules/services/list.php', 'match' => ['/services/']],
+        ['label' => 'Doctors',  'icon' => 'bi-person-badge-fill',  'href' => 'modules/doctors/list.php',  'match' => ['/doctors/']],
+    ]],
+
+    ['group' => 'system', 'title' => 'System', 'open' => false, 'admin' => true, 'items' => [
+        ['label' => 'Audit Logs',       'icon' => 'bi-shield-fill-check',    'href' => 'modules/logs/activity.php',   'match' => ['/logs/']],
+        ['label' => 'Clinic Settings',  'icon' => 'bi-building',             'href' => 'modules/settings/clinic.php', 'match' => ['/settings/clinic']],
+        ['label' => 'Database Backup',  'icon' => 'bi-database-fill-down',   'href' => 'modules/settings/backup.php', 'match' => ['/settings/backup']],
+    ]],
+];
+
+// True when the menu item belongs to the page being viewed
+if (!function_exists('sb_is_current')) {
+    function sb_is_current(array $it, string $self): bool {
+        foreach ($it['not'] ?? [] as $n) { if (strpos($self, $n) !== false) return false; }
+        foreach ($it['match'] as $m)     { if (strpos($self, $m) !== false) return true; }
+        return false;
+    }
+}
+// Prints one menu link
+if (!function_exists('sb_render_link')) {
+    function sb_render_link(array $it, bool $current): void {
+        $cls  = $current ? ' class="active"' : '';
+        $aria = $current ? ' aria-current="page"' : '';
+        echo '<li><a href="' . BASE_URL . htmlspecialchars($it['href'], ENT_QUOTES, 'UTF-8') . '"' . $cls . $aria . '>'
+           . '<i class="bi ' . htmlspecialchars($it['icon'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i>'
+           . '<span class="nav-label">' . htmlspecialchars($it['label'], ENT_QUOTES, 'UTF-8') . '</span>'
+           . '</a></li>' . "\n";
+    }
+}
 ?>
 <!-- Skip-to-content link (accessibility) -->
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -31,6 +90,54 @@ if (!function_exists('nav_active')) {
 
 <!-- Mobile sidebar backdrop — tap to close -->
 <div id="sidebar-backdrop" onclick="closeMobileSidebar()" aria-hidden="true"></div>
+
+<style>
+/* ── Collapsible sidebar groups ─────────────────────────────────────────────── */
+#sidebar .nav-group-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    width: calc(100% - 18px); min-width: 0; min-height: 36px;
+    margin: 10px 9px 2px; padding: 6px 11px;
+    background: transparent; border: 0; border-radius: 8px; cursor: pointer;
+    font-family: inherit; font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; text-align: left; white-space: nowrap;
+    color: rgba(255, 255, 255, 0.60);
+    transition: background 0.17s var(--ease, ease), color 0.17s var(--ease, ease);
+}
+#sidebar .nav-group-toggle:hover { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.92); }
+#sidebar .nav-group-toggle:focus-visible { outline: 3px solid #60a5fa; outline-offset: -2px; }
+#sidebar .nav-group.has-active .nav-group-title { color: rgba(255, 255, 255, 0.92); }
+#sidebar .nav-group-chevron { font-size: 0.7rem; flex-shrink: 0; transition: transform 0.2s var(--ease, ease); }
+#sidebar .nav-group.is-closed .nav-group-chevron { transform: rotate(-90deg); }
+/* Gold dot: this closed group contains the page you are on */
+#sidebar .nav-group.is-closed.has-active .nav-group-title::after {
+    content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 8px;
+    border-radius: 50%; background: var(--accent-light, #e8b84b); vertical-align: middle;
+}
+
+/* Open / close — the row height animates between 0fr and 1fr */
+#sidebar .nav-group-body { display: grid; grid-template-rows: 1fr; }
+#sidebar .nav-group.is-closed .nav-group-body { grid-template-rows: 0fr; }
+#sidebar .nav-group-list {
+    min-height: 0; overflow: hidden; margin: 0; padding: 2px 0 8px; list-style: none;
+}
+#sidebar .nav-group.is-closed .nav-group-list { visibility: hidden; padding-top: 0; padding-bottom: 0; }
+/* animations switch on after the first paint, so the saved state never "plays" on page load */
+#sidebar.nav-ready .nav-group-body { transition: grid-template-rows 0.22s var(--ease, ease); }
+#sidebar.nav-ready .nav-group-list { transition: padding 0.22s var(--ease, ease), visibility 0s linear 0.22s; }
+#sidebar.nav-ready .nav-group:not(.is-closed) .nav-group-list { transition-delay: 0s; }
+
+/* Icon-only (collapsed) sidebar: show every icon, with a thin divider between groups */
+#sidebar.collapsed .nav-group-toggle { display: none; }
+#sidebar.collapsed .nav-group::before {
+    content: ""; display: block; height: 1px; margin: 6px 16px 4px; background: rgba(255, 255, 255, 0.08);
+}
+#sidebar.collapsed .nav-group.is-closed .nav-group-body { grid-template-rows: 1fr; }
+#sidebar.collapsed .nav-group.is-closed .nav-group-list { visibility: visible; padding: 2px 0 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+    #sidebar .nav-group-body, #sidebar .nav-group-list, #sidebar .nav-group-chevron { transition: none !important; }
+}
+</style>
 
 <nav id="sidebar" aria-label="Main navigation">
 
@@ -58,102 +165,31 @@ if (!function_exists('nav_active')) {
 
 
     <ul class="sidebar-nav" role="list">
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Main</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>dashboard.php" class="<?php echo nav_active('dashboard'); ?>"
-               <?php echo nav_active('dashboard') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-house-door-fill" aria-hidden="true"></i><span class="nav-label">Dashboard</span>
-            </a>
+<?php foreach ($__nav as $__entry): ?>
+<?php if (!isset($__entry['group'])): ?>
+        <?php sb_render_link($__entry, sb_is_current($__entry, $__self)); ?>
+<?php else: ?>
+<?php
+    if (!empty($__entry['admin']) && !$__is_admin) continue;
+    $__gid    = $__entry['group'];
+    $__active = false;
+    foreach ($__entry['items'] as $__it) { if (sb_is_current($__it, $__self)) { $__active = true; break; } }
+    $__open   = $__active || !empty($__entry['open']);
+?>
+        <li class="nav-group<?php echo $__open ? '' : ' is-closed'; ?><?php echo $__active ? ' has-active' : ''; ?>" data-group="<?php echo $__gid; ?>">
+            <button type="button" class="nav-group-toggle" id="nav-btn-<?php echo $__gid; ?>"
+                    aria-expanded="<?php echo $__open ? 'true' : 'false'; ?>" aria-controls="nav-group-<?php echo $__gid; ?>">
+                <span class="nav-group-title"><?php echo htmlspecialchars($__entry['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+                <i class="bi bi-chevron-down nav-group-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="nav-group-body" id="nav-group-<?php echo $__gid; ?>" role="group" aria-labelledby="nav-btn-<?php echo $__gid; ?>">
+                <ul class="nav-group-list" role="list">
+<?php foreach ($__entry['items'] as $__it) { sb_render_link($__it, sb_is_current($__it, $__self)); } ?>
+                </ul>
+            </div>
         </li>
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Patients</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/patients/list.php" class="<?php echo nav_active('/patients/list'); ?>"
-               <?php echo nav_active('/patients/list') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-people-fill" aria-hidden="true"></i><span class="nav-label">Patient Records</span>
-            </a>
-        </li>
-
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Appointments</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/appointments/list.php" class="<?php echo nav_active('/appointments/list'); ?>"
-               <?php echo nav_active('/appointments/list') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-calendar-check-fill" aria-hidden="true"></i><span class="nav-label">Appointments</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/appointments/calendar.php" class="<?php echo nav_active('/appointments/calendar'); ?>"
-               <?php echo nav_active('/appointments/calendar') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-calendar3" aria-hidden="true"></i><span class="nav-label">Calendar</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/schedule/manage.php" class="<?php echo nav_active('/schedule/'); ?>"
-               <?php echo nav_active('/schedule/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-clock-history" aria-hidden="true"></i><span class="nav-label">Schedule</span>
-            </a>
-        </li>
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Billing</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/billing/list.php" class="<?php echo nav_active('/billing/'); ?>"
-               <?php echo nav_active('/billing/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-receipt" aria-hidden="true"></i><span class="nav-label">Billing</span>
-            </a>
-        </li>
-
-        <?php if (is_admin()): ?>
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Insights</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/analytics/dashboard.php" class="<?php echo nav_active('/analytics/dashboard'); ?>"
-               <?php echo nav_active('/analytics/dashboard') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-bar-chart-fill" aria-hidden="true"></i><span class="nav-label">Analytics</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/reports/index.php" class="<?php echo nav_active('/reports/'); ?>"
-               <?php echo nav_active('/reports/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-file-earmark-bar-graph-fill" aria-hidden="true"></i><span class="nav-label">Reports</span>
-            </a>
-        </li>
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">Manage</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/users/list.php" class="<?php echo nav_active('/users/'); ?>"
-               <?php echo nav_active('/users/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-person-gear" aria-hidden="true"></i><span class="nav-label">Users</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/services/list.php" class="<?php echo nav_active('/services/'); ?>"
-               <?php echo nav_active('/services/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-grid-fill" aria-hidden="true"></i><span class="nav-label">Services</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/doctors/list.php" class="<?php echo nav_active('/doctors/'); ?>"
-               <?php echo nav_active('/doctors/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-person-badge-fill" aria-hidden="true"></i><span class="nav-label">Doctors</span>
-            </a>
-        </li>
-
-        <li role="presentation"><span class="nav-section-label" aria-hidden="true">System</span></li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/logs/activity.php" class="<?php echo nav_active('/logs/'); ?>"
-               <?php echo nav_active('/logs/') ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-shield-fill-check" aria-hidden="true"></i><span class="nav-label">Audit Logs</span>
-            </a>
-        </li>
-        <li role="presentation">
-            <a href="<?php echo BASE_URL; ?>modules/settings/clinic.php" class="<?php echo nav_active('/settings/clinic') ? 'active' : ''; ?>"
-               <?php echo (strpos($_SERVER['REQUEST_URI'] ?? '', '/settings/clinic') !== false) ? 'aria-current="page"' : ''; ?>>
-                <i class="bi bi-building" aria-hidden="true"></i><span class="nav-label">Clinic Settings</span>
-            </a>
-        </li>
-        <?php endif; ?>
-
+<?php endif; ?>
+<?php endforeach; ?>
     </ul>
 
     <div class="sidebar-footer">
@@ -199,4 +235,41 @@ if (!function_exists('nav_active')) {
     </div>
 
 </nav>
+<script>
+// Collapsible sidebar groups: remembers what you opened or closed.
+// The group holding the current page always opens by itself.
+(function () {
+    var sb = document.getElementById('sidebar');
+    if (!sb) return;
+    var KEY = 'cap_nav_groups_v1', saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+
+    function setOpen(group, open) {
+        group.classList.toggle('is-closed', !open);
+        var btn = group.querySelector('.nav-group-toggle');
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    sb.querySelectorAll('.nav-group').forEach(function (g) {
+        var id = g.getAttribute('data-group');
+        if (!g.classList.contains('has-active') && Object.prototype.hasOwnProperty.call(saved, id)) {
+            setOpen(g, !!saved[id]);
+        }
+    });
+
+    sb.addEventListener('click', function (e) {
+        var btn = e.target.closest('.nav-group-toggle');
+        if (!btn) return;
+        var g = btn.closest('.nav-group');
+        var open = g.classList.contains('is-closed');
+        setOpen(g, open);
+        saved[g.getAttribute('data-group')] = open ? 1 : 0;
+        try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (err) { /* storage blocked: ignore */ }
+    });
+
+    requestAnimationFrame(function () {
+        requestAnimationFrame(function () { sb.classList.add('nav-ready'); });
+    });
+})();
+</script>
 <?php include __DIR__ . '/bottom-nav.php'; ?>

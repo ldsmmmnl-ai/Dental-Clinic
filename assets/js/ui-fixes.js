@@ -46,7 +46,13 @@
         t.appendChild(i); t.appendChild(span); t.appendChild(x);
         host().appendChild(t);
 
-        function close() { if (t.parentNode) t.parentNode.removeChild(t); }
+        function remove() { if (t.parentNode) t.parentNode.removeChild(t); }
+        var closing = false;
+        function close() {
+            if (closing) return;
+            closing = true;
+            if (window.Motion) window.Motion.leave(t, remove); else remove();   // fade/slide out (motion.js), plain remove if it isn't loaded
+        }
         x.addEventListener('click', close);
         setTimeout(close, type === 'error' ? 8000 : 5000);
     };

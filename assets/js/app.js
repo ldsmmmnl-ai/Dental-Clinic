@@ -226,7 +226,7 @@ function initPage() {
     // 0. PJAX CARD ANIMATION SUPPRESSION
     // On PJAX navigations, add no-anim to all cards so they don't animate in
     if (_isPjaxNav) {
-        document.querySelectorAll('.card').forEach(function (c) { c.classList.add('no-anim'); });
+        document.querySelectorAll('.card, .dash-kpi, .an-kpi-card, .stat-card').forEach(function (c) { c.classList.add('no-anim'); });
         _isPjaxNav = false;
     }
 

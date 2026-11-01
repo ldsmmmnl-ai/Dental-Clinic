@@ -96,7 +96,7 @@ if (isset($conn) && (time() - $cache_time) > 30) {
                     </button>
                     <?php endif; ?>
                 </div>
-                <div class="notif-panel-body" id="notifList">
+                <div class="notif-panel-body" id="notifList" tabindex="0" role="region" aria-label="Notifications">
                     <?php if (empty($recent_notifs)): ?>
                     <div class="notif-empty">
                         <i class="bi bi-bell-slash" style="font-size:1.6rem;color:var(--gray-300);display:block;margin-bottom:8px;"></i>

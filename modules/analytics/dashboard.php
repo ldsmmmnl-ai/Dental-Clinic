@@ -247,7 +247,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
     font-size: 1.2rem; flex-shrink: 0;
 }
 .an-kpi-icon.blue   { background: rgba(37,99,235,0.10);  color: #2563eb; }
-.an-kpi-icon.green  { background: rgba(22,163,74,0.10);  color: #16a34a; }
+.an-kpi-icon.green  { background: rgba(22,163,74,0.10);  color: #15803d; }
 .an-kpi-icon.teal   { background: rgba(13,148,136,0.10); color: #0d9488; }
 .an-kpi-icon.indigo { background: rgba(99,102,241,0.10); color: #6366f1; }
 
@@ -256,8 +256,8 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
 .an-kpi-value.sm { font-size: 1.4rem; }
 
 .kpi-trend         { display: inline-flex; align-items: center; gap: 1px; font-size: 0.71rem; font-weight: 600; border-radius: 20px; padding: 2px 8px; }
-.kpi-trend.up      { color: #16a34a; background: rgba(22,163,74,0.09); }
-.kpi-trend.down    { color: #dc2626; background: rgba(220,38,38,0.09); }
+.kpi-trend.up      { color: #15803d; background: rgba(22,163,74,0.09); }
+.kpi-trend.down    { color: #b91c1c; background: rgba(220,38,38,0.09); }
 .kpi-trend.neutral { color: var(--gray-500); background: var(--gray-100); font-weight: 400; }
 
 /* Chart cards */
@@ -354,7 +354,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
     display: inline-flex; align-items: center; gap: 5px;
     background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.16);
     border-radius: 20px; padding: 3px 10px;
-    font-size: 0.70rem; font-weight: 600; color: #2563eb;
+    font-size: 0.70rem; font-weight: 600; color: var(--primary);
 }
 
 /* Page header */
@@ -413,7 +413,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
                     $active = ($range === $key) || ($range === '30days' && $key === 'month');
                     $href   = '?range=' . $key . ($key === 'month' ? '&month=' . $selected_month : '');
                     $style  = $active
-                        ? 'padding:6px 16px;border-radius:20px;font-size:0.78rem;font-weight:700;background:#2563eb;color:#fff;border:none;cursor:pointer;text-decoration:none;display:inline-block;'
+                        ? 'padding:6px 16px;border-radius:20px;font-size:0.78rem;font-weight:700;background:var(--primary);color:#fff;border:none;cursor:pointer;text-decoration:none;display:inline-block;'
                         : 'padding:6px 16px;border-radius:20px;font-size:0.78rem;font-weight:500;background:var(--gray-100);color:var(--gray-600);border:none;cursor:pointer;text-decoration:none;display:inline-block;transition:background 0.15s;';
                 ?>
                 <a href="<?php echo $href; ?>" style="<?php echo $style; ?>"><?php echo $label; ?></a>
@@ -495,7 +495,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
             <div class="an-card">
                 <div class="an-card-head">
                     <div class="an-card-head-title">
-                        <i class="bi bi-activity" style="color:#2563eb;"></i>
+                        <i class="bi bi-activity" style="color:var(--primary);"></i>
                         Daily Appointment Activity
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -525,29 +525,29 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
                 <div class="rev-stats-row">
                     <div class="rev-stat">
                         <div class="rev-stat-label">6-Month Total</div>
-                        <div class="rev-stat-val" style="color:#0d9488;">₱<?php echo number_format($total_revenue_6m, 0); ?></div>
+                        <div class="rev-stat-val" style="color:#0f766e;">₱<?php echo number_format($total_revenue_6m, 0); ?></div>
                         <div class="rev-stat-sub">Cumulative revenue</div>
                     </div>
                     <div class="rev-stat">
                         <div class="rev-stat-label">Best Month</div>
-                        <div class="rev-stat-val" style="color:#2563eb;">₱<?php echo number_format($best_month_rev, 0); ?></div>
+                        <div class="rev-stat-val" style="color:var(--primary);">₱<?php echo number_format($best_month_rev, 0); ?></div>
                         <div class="rev-stat-sub"><?php echo $best_month_label ?: '—'; ?></div>
                     </div>
                     <div class="rev-stat">
                         <div class="rev-stat-label">Monthly Average</div>
-                        <div class="rev-stat-val" style="color:#6366f1;">₱<?php echo number_format($avg_revenue_6m, 0); ?></div>
+                        <div class="rev-stat-val" style="color:#4f46e5;">₱<?php echo number_format($avg_revenue_6m, 0); ?></div>
                         <div class="rev-stat-sub">Per month</div>
                     </div>
                 </div>
                 <div class="an-card-head">
                     <div class="an-card-head-title">
-                        <i class="bi bi-graph-up" style="color:#16a34a;"></i>
+                        <i class="bi bi-graph-up" style="color:#15803d;"></i>
                         Revenue Trend &amp; Projection
                     </div>
                     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
                         <?php if ($forecast > 0): ?>
                         <span style="font-size:0.73rem;color:var(--gray-500);">
-                            Forecast <strong style="color:#16a34a;">₱<?php echo number_format($forecast); ?></strong>
+                            Forecast <strong style="color:#15803d;">₱<?php echo number_format($forecast); ?></strong>
                             <span style="color:var(--gray-400);"> · <?php echo $next_month_label; ?></span>
                         </span>
                         <?php endif; ?>
@@ -564,7 +564,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
                         </span>
                         <?php if ($forecast > 0): ?>
                         <span style="display:flex;align-items:center;gap:6px;">
-                            <span style="display:inline-block;width:18px;border-top:2px dashed #16a34a;vertical-align:middle;"></span>Forecast
+                            <span style="display:inline-block;width:18px;border-top:2px dashed #15803d;vertical-align:middle;"></span>Forecast
                         </span>
                         <?php endif; ?>
                         <span style="display:flex;align-items:center;gap:6px;">
@@ -578,7 +578,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
             <div class="an-card">
                 <div class="an-card-head">
                     <div class="an-card-head-title">
-                        <i class="bi bi-pie-chart-fill" style="color:#2563eb;"></i>
+                        <i class="bi bi-pie-chart-fill" style="color:var(--primary);"></i>
                         Appointment Breakdown
                     </div>
                     <span class="an-card-head-sub">By service — hover to explore</span>
@@ -586,7 +586,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
                 <div class="appt-breakdown-body">
                     <div class="donut-wrap">
                         <canvas id="apptBreakdownChart"></canvas>
-                        <div class="donut-center">
+                        <div class="donut-center"<?php echo $total_appts_breakdown === 0 ? ' hidden' : ''; ?>>
                             <div class="donut-center-total" id="donutCenterVal"><?php echo $total_appts_breakdown; ?></div>
                             <div class="donut-center-label" id="donutCenterLabel">Total Appts</div>
                         </div>
@@ -603,7 +603,7 @@ $svc_data      = json_encode(array_column($appt_by_service, 'total'));
 
     </div><!-- /page-content -->
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/chart.umd.min.js"></script>
 <script>
 function safeChart(id, config) {
     var el = document.getElementById(id);
@@ -718,13 +718,13 @@ function noDataPlugin(msg) {
                 {
                     label: 'Forecast',
                     data: forecastData,
-                    borderColor: '#16a34a', borderWidth: 2, borderDash: [7, 4],
+                    borderColor: '#15803d', borderWidth: 2, borderDash: [7, 4],
                     backgroundColor: 'transparent', fill: false, tension: 0.35,
                     pointRadius: ctx => {
                         var v = forecastData[ctx.dataIndex];
                         return (v !== null && ctx.dataIndex === forecastData.length - 1) ? 6 : 0;
                     },
-                    pointBackgroundColor: '#16a34a',
+                    pointBackgroundColor: '#15803d',
                     pointBorderColor: cardBg, pointBorderWidth: 2,
                     order: 2
                 },
@@ -787,7 +787,7 @@ function noDataPlugin(msg) {
 (function () {
     var svcLabels = <?php echo $svc_labels; ?>;
     var svcData   = <?php echo $svc_data; ?>.map(Number);
-    var palette   = ['#2563eb', '#0d9488', '#f59e0b', '#6366f1', '#16a34a', '#dc2626'];
+    var palette   = ['#2563eb', '#0d9488', '#f59e0b', '#6366f1', '#15803d', '#dc2626'];
     var total     = svcData.reduce((a, b) => a + b, 0);
 
     var centerVal   = document.getElementById('donutCenterVal');
@@ -878,7 +878,7 @@ function noDataPlugin(msg) {
                 data: dValues,
                 backgroundColor: dValues.map((v, i) => {
                     if (v === 0)           return 'rgba(203,213,225,0.3)';
-                    if (i === peakIdx)     return '#2563eb';
+                    if (i === peakIdx)     return '#0d6e6e';
                     if (v >= maxVal * 0.8) return 'rgba(37,99,235,0.68)';
                     if (v >= maxVal * 0.5) return 'rgba(37,99,235,0.44)';
                     return 'rgba(37,99,235,0.26)';

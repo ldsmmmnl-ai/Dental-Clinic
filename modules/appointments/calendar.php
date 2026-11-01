@@ -166,7 +166,7 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 /* ── View Toggle ─────────────────────────────────────────── */
 .view-toggle{display:flex;background:var(--gray-100);border-radius:10px;padding:3px;gap:2px;}
 .view-toggle a{padding:6px 16px;font-size:0.8rem;font-weight:600;text-decoration:none;color:var(--gray-500);border-radius:8px;transition:all 0.18s;}
-.view-toggle a.active{background:var(--white);color:#2563eb;box-shadow:0 1px 6px rgba(37,99,235,0.12);}
+.view-toggle a.active{background:var(--white);color:var(--primary);box-shadow:0 1px 6px rgba(13,110,110,0.12);}
 .view-toggle a:hover:not(.active){background:var(--gray-50);color:var(--gray-700);}
 
 /* ── Calendar Wrap ───────────────────────────────────────── */
@@ -207,12 +207,14 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 .cal-cell:nth-child(7n){border-right:none;}
 .cal-cell:nth-child(7n+1) .day-num,
 .cal-cell:nth-child(7n) .day-num{color:#e11d48;} /* Sun/Sat in red */
+[data-theme="dark"] .cal-dow:first-child,[data-theme="dark"] .cal-dow:last-child{color:#fb7185;}
+[data-theme="dark"] .cal-cell:nth-child(7n) .day-num,[data-theme="dark"] .cal-cell:nth-child(7n+1) .day-num{color:#fb7185;}
 
 .cal-cell.empty{background:var(--gray-50);opacity:0.6;}
 .cal-cell.today{background:linear-gradient(135deg,var(--blue-50),var(--blue-100))!important;}
 .cal-cell.today::before{
   content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:0;
+  background:linear-gradient(90deg,var(--primary),var(--primary-light));border-radius:0;
 }
 .cal-cell.blocked{background:var(--danger-bg);}
 .cal-cell.has-appts{cursor:pointer;}
@@ -225,10 +227,10 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 }
 .today-dot{
   width:24px;height:24px;
-  background:linear-gradient(135deg,#2563eb,#3b82f6);
-  border-radius:50%;color:var(--white);font-size:0.68rem;font-weight:800;
+  background:linear-gradient(135deg,var(--primary),var(--primary-light));
+  border-radius:50%;color:var(--on-brand);font-size:0.68rem;font-weight:800;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 6px rgba(37,99,235,0.35);
+  box-shadow:0 2px 6px rgba(13,110,110,0.35);
 }
 
 /* ── Appointment Chips ───────────────────────────────────── */
@@ -252,11 +254,11 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .chip-time{font-size:0.6rem;opacity:0.7;flex-shrink:0;font-weight:700;}
 .more-pill{
-  font-size:0.67rem;color:#2563eb;font-weight:700;
+  font-size:0.67rem;color:var(--primary);font-weight:700;
   cursor:pointer;margin-top:3px;display:inline-flex;align-items:center;gap:2px;
-  background:#eff6ff;border-radius:20px;padding:1px 8px;border:1px solid #bfdbfe;
+  background:var(--primary-bg);border-radius:20px;padding:1px 8px;border:1px solid #bfe6e6;
 }
-.more-pill:hover{background:#dbeafe;}
+.more-pill:hover{background:#cdeeee;}
 .blocked-tag{
   font-size:0.67rem;color:#dc2626;
   background:#fee2e2;border-radius:20px;
@@ -292,11 +294,11 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 }
 .cal-today-btn{
   padding:4px 14px;border-radius:8px;font-size:0.78rem;font-weight:700;
-  background:linear-gradient(135deg,#2563eb,#3b82f6);color:var(--white);
+  background:linear-gradient(135deg,var(--primary),var(--primary-light));color:var(--on-brand);
   border:none;text-decoration:none;cursor:pointer;
-  box-shadow:0 2px 6px rgba(37,99,235,0.3);transition:all 0.15s;
+  box-shadow:0 2px 6px rgba(13,110,110,0.3);transition:all 0.15s;
 }
-.cal-today-btn:hover{box-shadow:0 4px 10px rgba(37,99,235,0.4);color:var(--white);}
+.cal-today-btn:hover{box-shadow:0 4px 10px rgba(13,110,110,0.4);color:var(--on-brand);}
 
 /* ── Day View ────────────────────────────────────────────── */
 .day-view-wrap{
@@ -524,13 +526,13 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 [data-theme="dark"] #walkinToast button[style*="color:#9ca3af"] { color: var(--gray-500) !important; }
 
 /* Mobile "switch to Day view" tip banner (week view) */
-[data-theme="dark"] .week-mobile-tip { background: rgba(37,99,235,0.14) !important; border-color: rgba(37,99,235,0.35) !important; }
-[data-theme="dark"] .week-mobile-tip div[style*="color:#1e40af"] { color: #93c5fd !important; }
-[data-theme="dark"] .week-mobile-tip div[style*="color:#3b82f6"] { color: #bfdbfe !important; }
+[data-theme="dark"] .week-mobile-tip { background: rgba(13,110,110,0.14) !important; border-color: rgba(13,110,110,0.35) !important; }
+[data-theme="dark"] .week-mobile-tip div[style*="color:var(--primary-dark)"] { color: #7fdcdc !important; }
+[data-theme="dark"] .week-mobile-tip div[style*="color:var(--primary)"] { color: #bfe6e6 !important; }
 
 /* "+N more" pill (month view) and "Closed" / allergy / balance pills */
-[data-theme="dark"] .more-pill { background: rgba(37,99,235,0.16) !important; border-color: rgba(37,99,235,0.4) !important; color: #93c5fd !important; }
-[data-theme="dark"] .more-pill:hover { background: rgba(37,99,235,0.24) !important; }
+[data-theme="dark"] .more-pill { background: rgba(13,110,110,0.16) !important; border-color: rgba(13,110,110,0.4) !important; color: #93c5fd !important; }
+[data-theme="dark"] .more-pill:hover { background: rgba(13,110,110,0.24) !important; }
 [data-theme="dark"] .blocked-tag,
 [data-theme="dark"] [style*="background:#fee2e2"] { background: rgba(220,38,38,0.16) !important; }
 [data-theme="dark"] [style*="color:#dc2626"] { color: #fca5a5 !important; }
@@ -547,8 +549,8 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
 
 <div class="cal-page-header" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;background:var(--white);border:1px solid var(--gray-200);border-radius:14px;padding:10px 16px;box-shadow:var(--shadow-sm);">
     <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:36px;height:36px;background:linear-gradient(135deg,#2563eb,#60a5fa);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-            <i class="bi bi-calendar3" style="color:var(--white);font-size:1rem;"></i>
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:10px;display:flex;align-items:center;justify-content:center;">
+            <i class="bi bi-calendar3" style="color:var(--on-brand);font-size:1rem;"></i>
         </div>
         <div>
             <div style="font-size:0.95rem;font-weight:800;color:var(--gray-900);line-height:1.1;">Appointment Calendar</div>
@@ -570,7 +572,7 @@ $all_docs_dw = $conn->query("SELECT id, full_name, specialization, schedule_days
         <a href="calendar.php?view=day&date=<?php echo $ctx_day; ?>" class="<?php echo $view==='day'?'active':''; ?>"><i class="bi bi-calendar-day"></i> Day</a>
     </div>
     <div class="cal-header-actions" style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-        <button onclick="openWalkinDrawer()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:10px;background:linear-gradient(135deg,#16a34a,#22c55e);color:var(--white);border:none;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(22,163,74,0.3);transition:all 0.15s;" onmouseover="this.style.boxShadow='0 4px 14px rgba(22,163,74,0.45)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(22,163,74,0.3)'">
+        <button onclick="openWalkinDrawer()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:10px;background:linear-gradient(135deg,#15803d,#22c55e);color:var(--on-brand);border:none;font-size:0.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(22,163,74,0.3);transition:all 0.15s;" onmouseover="this.style.boxShadow='0 4px 14px rgba(22,163,74,0.45)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(22,163,74,0.3)'">
             <i class="bi bi-plus-circle-fill"></i> New Appointment
         </button>
         <a href="list.php" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;background:var(--gray-50);color:var(--gray-600);border:1px solid var(--gray-200);font-size:0.82rem;font-weight:600;text-decoration:none;transition:all 0.15s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--gray-50)'">
@@ -683,11 +685,11 @@ $w_now_h = intval(date('G')); $w_now_m = intval(date('i'));
 
 <!-- Week grid -->
 <!-- Mobile tip: week view is desktop-only, suggest day view -->
-<div class="week-mobile-tip" style="display:none;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:center;">
-    <i class="bi bi-calendar-week" style="font-size:1.4rem;color:#2563eb;display:block;margin-bottom:6px;"></i>
-    <div style="font-size:0.85rem;font-weight:700;color:#1e40af;margin-bottom:4px;">Week view works best on desktop</div>
-    <div style="font-size:0.78rem;color:#3b82f6;margin-bottom:12px;">Switch to Day view for a better phone experience</div>
-    <a href="calendar.php?view=day&date=<?php echo $today;?>" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:10px;background:#2563eb;color:#fff;font-size:0.82rem;font-weight:700;text-decoration:none;">
+<div class="week-mobile-tip" style="display:none;background:var(--primary-bg);border:1.5px solid #bfe6e6;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:center;">
+    <i class="bi bi-calendar-week" style="font-size:1.4rem;color:var(--primary);display:block;margin-bottom:6px;"></i>
+    <div style="font-size:0.85rem;font-weight:700;color:var(--primary-dark);margin-bottom:4px;">Week view works best on desktop</div>
+    <div style="font-size:0.78rem;color:var(--primary);margin-bottom:12px;">Switch to Day view for a better phone experience</div>
+    <a href="calendar.php?view=day&date=<?php echo $today;?>" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;font-size:0.82rem;font-weight:700;text-decoration:none;">
         <i class="bi bi-calendar-day"></i> Switch to Day View
     </a>
 </div>
@@ -706,7 +708,7 @@ $w_now_h = intval(date('G')); $w_now_m = intval(date('i'));
             <?php echo date('D', strtotime($wd));?>
         </div>
         <div style="font-size:<?php echo $is_today_col?'1rem':'0.9rem';?>;font-weight:700;color:<?php echo $is_today_col?'var(--white)':'var(--gray-700)';?>;
-            <?php if($is_today_col): ?>background:#2563eb;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:3px auto 0;<?php else: ?>margin-top:3px;<?php endif;?>">
+            <?php if($is_today_col): ?>background:var(--primary);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:3px auto 0;<?php else: ?>margin-top:3px;<?php endif;?>">
             <?php echo date('j', strtotime($wd));?>
         </div>
         <?php if($day_appt_count > 0): ?>
@@ -1111,7 +1113,7 @@ function openApptModal(a){
     var dot=statusDot[a.status]||'#95a5a6';
     var balHtml='';
     if(a.bill_id){var bal=parseFloat(a.amount_due||0)-parseFloat(a.amount_paid||0);
-        if(a.bill_status==='paid'){balHtml='<span class="balance-pill" style="background:#dcfce7;color:#16a34a;">✓ Paid ₱'+parseFloat(a.amount_paid||0).toFixed(2)+'</span>';}
+        if(a.bill_status==='paid'){balHtml='<span class="balance-pill" style="background:#dcfce7;color:#15803d;">✓ Paid ₱'+parseFloat(a.amount_paid||0).toFixed(2)+'</span>';}
         else if(bal>0){balHtml='<span class="balance-pill" style="background:#fef9c3;color:#92400e;">Balance: ₱'+bal.toFixed(2)+'</span>';}
     }else{balHtml='<span style="color:var(--gray-400);font-size:0.78rem;">No bill yet</span>';}
     var rows=[
@@ -1342,7 +1344,7 @@ function loadDrawerDateData(date){
         if(data.status!=='success'){bar.innerHTML='<i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i> '+(data.message||'Could not load schedule.');return;}
         var sd=data.slot_data,docs=data.doctors||[];
         if(sd.is_closed){bar.innerHTML='<i class="bi bi-calendar-x" style="color:#f59e0b;"></i> <strong>'+sd.reason+'</strong>';}
-        else{var free=(sd.total_slots||0)-(sd.booked_count||0);bar.innerHTML='<i class="bi bi-calendar-check" style="color:#2563eb;"></i> '+data.day_name+' — <strong style="color:#2563eb;">'+free+' slot'+(free!==1?'s':'')+' free</strong>';}
+        else{var free=(sd.total_slots||0)-(sd.booked_count||0);bar.innerHTML='<i class="bi bi-calendar-check" style="color:var(--primary);"></i> '+data.day_name+' — <strong style="color:var(--primary);">'+free+' slot'+(free!==1?'s':'')+' free</strong>';}
         var savedDoc=docSelect.value;
         docSelect.innerHTML='<option value="">Any Available Doctor</option>';
         if(!docs.length){docNote.textContent='No doctors scheduled on this day.';}

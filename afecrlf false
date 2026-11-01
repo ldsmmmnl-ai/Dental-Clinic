@@ -1,0 +1,199 @@
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Caddyfile', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Dockerfile', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/analytics.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/appointments.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/billing.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/notifications.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/patient_media.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/patients.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api/walkin.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/.htaccess', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/accessibility.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/enhanced.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/mobile.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/phone.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/print.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/style.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/css/ui-fixes.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/images/favicon.svg', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/images/logos/.htaccess', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/js/accessibility.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/js/app.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'assets/js/ui-fixes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'composer.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'composer.lock', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'dashboard.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/4442.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/cap.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/migration_dental_records_v2.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/migration_fee_charged.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/migration_patient_media.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/api-reference.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/lessons/01-getting-started.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/lessons/02-system-architecture.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/lessons/03-database-design.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/lessons/04-security-features.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'error.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/AppointmentService.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/BillingService.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/PatientService.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/auth.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/balance_notifier.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/bottom-nav.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/clinic_settings.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/config.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/db.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/doctor_ptr.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/footer.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/head.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/header.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/multi_service.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/phone_input.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/sidebar.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'includes/tooth_chart_grid.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'index.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'logout.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/analytics/dashboard.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/appointments/add.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/appointments/calendar.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/appointments/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/billing/create.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/billing/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/billing/pay.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/billing/view.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/doctors/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/patients/add.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/patients/edit.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/patients/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/patients/view.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/appointment_slip.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/daily_schedule.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/dental_certificate.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/dental_record.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/payment_receipt.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/print/prescription.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/reports/index.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/schedule/manage.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/services/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/settings/backup.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/settings/clinic.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/settings/profile.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/treatments/add.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/treatments/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/treatments/view.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/users/add.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/users/edit.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/users/list.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'modules/walkin/add.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'router.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/autoload.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/ClassLoader.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/InstalledVersions.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/LICENSE', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/autoload_classmap.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/autoload_namespaces.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/autoload_psr4.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/autoload_real.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/autoload_static.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/installed.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/installed.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/composer/platform_check.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/COMMITMENT', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/LICENSE', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/SECURITY.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/SMTPUTF8.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/VERSION', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/composer.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/get_oauth_token.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-af.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ar.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-as.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-az.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ba.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-be.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-bg.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-bn.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ca.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-cs.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-da.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-de.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-el.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-eo.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-es.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-et.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-fa.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-fi.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-fo.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-fr.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-gl.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-he.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-hi.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-hr.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-hu.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-hy.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-id.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-it.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ja.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ka.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ko.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ku.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-lt.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-lv.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-mg.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-mn.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ms.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-nb.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-nl.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-pl.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-pt.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-pt_br.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ro.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ru.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-si.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-sk.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-sl.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-sr.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-sr_latn.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-sv.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-tl.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-tr.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-uk.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-ur.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-vi.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-zh.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/language/phpmailer.lang-zh_cn.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/DSNConfigurator.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/Exception.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/OAuth.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/OAuthTokenProvider.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/PHPMailer.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/POP3.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vendor/phpmailer/phpmailer/src/SMTP.php', LF will be replaced by CRLF the next time Git touches it
+ assets/css/enhanced.css              |   4 [32m+[m[31m-[m
+ assets/css/print.css                 |   2 [32m+[m[31m-[m
+ assets/css/style.css                 | 316 [32m+++++++++++[m[31m------------------------[m
+ assets/js/app.js                     |   2 [32m+[m[31m-[m
+ assets/js/ui-fixes.js                |  10 [32m+[m[31m-[m
+ dashboard.php                        |  24 [32m+[m[31m--[m
+ error.php                            |   2 [32m+[m[31m-[m
+ includes/bottom-nav.php              |   3 [32m+[m[31m-[m
+ includes/clinic_settings.php         |   2 [32m+[m[31m-[m
+ includes/head.php                    |  11 [32m+[m[31m-[m
+ includes/header.php                  |   2 [32m+[m[31m-[m
+ includes/sidebar.php                 | 265 [32m++++++++++++++++++[m[31m-----------[m
+ index.php                            | 219 [32m+++++++++[m[31m---------------[m
+ modules/analytics/dashboard.php      |  38 [32m++[m[31m---[m
+ modules/appointments/calendar.php    |  56 [32m++++[m[31m---[m
+ modules/appointments/list.php        |   9 [32m+[m[31m-[m
+ modules/billing/list.php             |  51 [32m++++[m[31m--[m
+ modules/patients/view.php            |   4 [32m+[m[31m-[m
+ modules/print/appointment_slip.php   |   1 [32m+[m
+ modules/print/daily_schedule.php     |   1 [32m+[m
+ modules/print/dental_certificate.php |   1 [32m+[m
+ modules/print/payment_receipt.php    |   1 [32m+[m
+ modules/users/edit.php               |  12 [32m+[m[31m-[m
+ modules/walkin/add.php               |   8 [32m+[m[31m-[m
+ 24 files changed, 490 insertions(+), 554 deletions(-)

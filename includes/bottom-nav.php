@@ -12,6 +12,7 @@ $_pn_items = [
     ['Doctors',        'bi-person-badge-fill',        'modules/doctors/list.php',      '/doctors/',   true],
     ['Audit Logs',     'bi-shield-fill-check',        'modules/logs/activity.php',     '/logs/',      true],
     ['Clinic Settings','bi-gear-fill',                 'modules/settings/clinic.php',   '/settings/clinic', true],
+    ['Database Backup','bi-database-fill-down',        'modules/settings/backup.php',   '/settings/backup', true],
 ];
 $_pn_more_match = [];
 foreach ($_pn_items as $it) { if (!$it[4] || $_pn_admin) $_pn_more_match[] = $it[3]; }

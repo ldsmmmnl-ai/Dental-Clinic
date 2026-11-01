@@ -120,7 +120,7 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
 .kpi-icon.blue   { background: rgba(37,99,235,0.10); color: #2563eb; }
 .kpi-icon.teal   { background: rgba(20,184,166,0.10); color: #0d9488; }
 .kpi-icon.amber  { background: rgba(245,158,11,0.10); color: #d97706; }
-.kpi-icon.green  { background: rgba(22,163,74,0.10);  color: #16a34a; }
+.kpi-icon.green  { background: rgba(22,163,74,0.10);  color: #15803d; }
 
 .kpi-label { font-size: 0.72rem; color: var(--gray-500); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
 .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--gray-900); }
@@ -131,8 +131,8 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
     font-size: 0.72rem; font-weight: 600; padding: 2px 7px;
     border-radius: 20px;
 }
-.kpi-trend.up   { background: rgba(22,163,74,0.09);  color: #16a34a; }
-.kpi-trend.down { background: rgba(220,38,38,0.09);  color: #dc2626; }
+.kpi-trend.up   { background: rgba(22,163,74,0.09);  color: #15803d; }
+.kpi-trend.down { background: rgba(220,38,38,0.09);  color: #b91c1c; }
 .kpi-trend.flat { background: var(--gray-100); color: var(--gray-500); font-weight:400; }
 
 /* Main body grid */
@@ -182,9 +182,9 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
     padding: 9px 14px; border-radius: 9px; font-size: 0.82rem; font-weight: 600;
     text-decoration: none; transition: all 0.15s; border: 1.5px solid transparent;
 }
-.qa-btn.primary  { background: #2563eb; color: #fff; }
-.qa-btn.primary:hover { background: #1d4ed8; color: #fff; }
-.qa-btn.success  { background: #16a34a; color: #fff; }
+.qa-btn.primary  { background: var(--primary); color: #fff; }
+.qa-btn.primary:hover { background: var(--primary-dark); color: #fff; }
+.qa-btn.success  { background: #15803d; color: #fff; }
 .qa-btn.success:hover { background: #15803d; color: #fff; }
 .qa-btn.outline  { background: transparent; color: var(--gray-700); border-color: var(--gray-200); }
 .qa-btn.outline:hover { background: var(--gray-50); color: var(--gray-800); border-color: var(--gray-300); }
@@ -193,7 +193,7 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
 
 /* Flow bar */
 .flow-bar {
-    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    background: linear-gradient(135deg, var(--navy-800, #072040) 0%, #0a4a4c 100%);
     border-radius: 12px; padding: 16px 20px; margin-bottom: 18px;
 }
 .flow-step {
@@ -225,11 +225,11 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
 .appt-table tbody tr:hover { background: var(--gray-50); }
 [data-theme="dark"] .appt-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 
-.appt-code { font-weight: 700; color: #2563eb; font-size: 0.78rem; }
+.appt-code { font-weight: 700; color: var(--primary); font-size: 0.78rem; }
 .appt-name { font-weight: 600; color: var(--gray-800); }
 [data-theme="dark"] .appt-name { color: var(--gray-900); }
 .appt-service { color: var(--gray-500); font-size: 0.78rem; }
-.appt-doctor  { font-size: 0.72rem; color: #2563eb; font-weight: 600; margin-top: 1px; }
+.appt-doctor  { font-size: 0.72rem; color: var(--primary); font-weight: 600; margin-top: 1px; }
 
 /* Status badge */
 .st { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
@@ -375,7 +375,7 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
                         <?php echo date('M d, h:i A', strtotime($n['created_at'])); ?>
                     </span>
                 </div>
-                <button type="button" class="btn-close" style="flex-shrink:0;" data-bs-dismiss="alert" onclick="markRead(<?php echo $n['id']; ?>)"></button>
+                <button type="button" class="btn-close" style="flex-shrink:0;" data-bs-dismiss="alert" aria-label="Dismiss notification" onclick="markRead(<?php echo $n['id']; ?>)"></button>
             </div>
             <?php endforeach; ?>
         </div>
@@ -440,7 +440,7 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
                             $is_now = ($now_mins >= $appt_mins && $now_mins <= $appt_mins + 30);
                             $sc = match($ts['status']) {
                                 'confirmed' => ['#2563eb','#dbeafe'],
-                                'completed' => ['#16a34a','#dcfce7'],
+                                'completed' => ['#15803d','#dcfce7'],
                                 default     => ['#d97706','#fef3c7']
                             };
                         ?>
@@ -469,7 +469,7 @@ $pat_trend = trend($patients_this_month, $patients_last_month);
                         </div>
                         <?php if (count($today_schedule) >= 8): ?>
                         <a href="modules/appointments/list.php?date=<?php echo $today; ?>"
-                           style="display:block;text-align:center;margin-top:10px;font-size:0.75rem;color:#2563eb;font-weight:600;text-decoration:none;padding:6px;border-radius:7px;background:var(--gray-50);">
+                           style="display:block;text-align:center;margin-top:10px;font-size:0.75rem;color:var(--primary);font-weight:600;text-decoration:none;padding:6px;border-radius:7px;background:var(--gray-50);">
                             View all today →
                         </a>
                         <?php endif; ?>

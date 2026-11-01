@@ -59,7 +59,7 @@ function clinic_settings(PDO $conn): array {
                    . '</span>';
     } else {
         $logo_html = '<span style="display:inline-flex;align-items:center;justify-content:center;'
-                   . 'width:48px;height:48px;background:#2563eb;border-radius:12px;'
+                   . 'width:48px;height:48px;background:#0d6e6e;border-radius:12px;'
                    . 'font-size:24px;flex-shrink:0;">🦷</span>';
     }
 

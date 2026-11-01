@@ -607,7 +607,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
 .walkin-slot-banner .slot-time {
     font-size: 1.5rem;
     font-weight: 900;
-    color: var(--blue-600, #2563eb);
+    color: var(--primary);
     font-family: var(--font-display);
     letter-spacing: -0.02em;
     white-space: nowrap;
@@ -641,7 +641,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
 }
 .slip-header {
     text-align: center;
-    border-bottom: 2px solid #2563eb;
+    border-bottom: 2px solid var(--primary);
     padding-bottom: 14px;
     margin-bottom: 14px;
 }
@@ -653,7 +653,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
     margin-bottom: 14px;
 }
 .tl { font-size: 0.68rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
-.tv { font-size: 1.8rem; font-weight: 900; color: #2563eb; line-height: 1.1; font-family: 'Outfit', sans-serif; }
+.tv { font-size: 1.8rem; font-weight: 900; color: var(--primary); line-height: 1.1; font-family: 'Outfit', sans-serif; }
 .slip-row {
     display: flex;
     justify-content: space-between;
@@ -750,7 +750,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['_ajax']) && $error) 
                 <i class="bi bi-clock-fill" style="color:var(--blue-500);font-size:1rem;"></i>
                 <div>
                     <div style="font-size:0.65rem;color:var(--gray-500);text-transform:uppercase;font-weight:700;letter-spacing:.06em;">Next available slot</div>
-                    <div style="font-size:1.15rem;font-weight:900;color:var(--blue-600,#2563eb);font-family:var(--font-display);line-height:1.1;"><?php echo $next_label; ?></div>
+                    <div style="font-size:1.15rem;font-weight:900;color:var(--primary);font-family:var(--font-display);line-height:1.1;"><?php echo $next_label; ?></div>
                 </div>
             </div>
             <?php endif; ?>
